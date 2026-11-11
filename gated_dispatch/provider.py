@@ -1,4 +1,6 @@
-"""Provider call: one chat completion over an OpenAI-compatible HTTP API.
+"""Legacy generic provider call (superseded by lanes.py for STD-0).
+
+Provider call: one chat completion over an OpenAI-compatible HTTP API.
 
 Standard library only. The transport is injectable so the full loop can
 be tested offline with a stub; production runs use urllib against the
