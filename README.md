@@ -57,6 +57,10 @@ Costs are estimates from list prices (`gated_dispatch/pricing.py`, November 2026
 - `gated_dispatch/cli.py` — the pipeline wiring and command-line entry point
 - `tests/test_slice.py` — the full loop, tested offline: approval, both rejection paths, and provider error
 
+## STD-0 — Metered Dispatch (v0.2.0)
+
+Every dispatch now runs under the STD-0 metering standard (`docs/std-0.md`): one complete ticket per run, with token counts taken from the provider API's own usage fields — never estimated — priced at published rates, charged against a named budget envelope (frontier $121.33 · sweeps $10.92 · open-weight $15.00 · health $7.75 · CI/local $0) under per-lane sub-ceilings (Claude $75 · Gemini $35 · Grok $30 · Open $15) and a $155 aggregate backstop. At 90% of any ceiling, work holds for the owner's word; at 100%, the class hard-stops. A model with no published price stops before dispatch. Owner time at the approval gate is metered in the same ticket (shown→decision, clamped) at an interim $2.00/owner-minute. Live lanes: Anthropic, Gemini, xAI — proven with real ticketed round-trips in `docs/std-0-proof.md`. Reproduce with `python examples/std0_live_proof.py <ledger-path>`.
+
 ## Status
 
-v0.1.0 — the slice runs end to end. Architecture decision records and diagrams live under `docs/`; operating receipts (aggregate cost per ticket, failure log) are published from real runs, not staged for the README.
+v0.2.0 — STD-0 live on three lanes; 12 offline tests green. Architecture decision records and diagrams live under `docs/`; operating receipts (aggregate cost per ticket, failure log) are published from real runs, not staged for the README.
