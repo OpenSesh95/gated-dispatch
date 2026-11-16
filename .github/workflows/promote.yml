@@ -1,0 +1,69 @@
+# Promotion pipeline — dev -> test -> cert -> production.
+# Branch-driven stages: each stage branch carries this workflow, and
+# a push to a stage branch runs that stage's verification job bound
+# to its GitHub Environment — so every promotion is a real, logged
+# event on the repo's Deployments surface, with no manual dispatch.
+# (workflow_dispatch is not used: GitHub only offers it when the
+# workflow file also lives on the default branch, which would put
+# uncertified machinery on main.)
+# Flow: push to dev (verify) -> branch dev to test (promote-test)
+# -> branch test to cert AFTER the owner's cert tap on the packet
+# (promote-cert) -> merge cert to main (promote-production).
+name: promote
+
+on:
+  push:
+    branches: [dev, test, cert, main]
+
+jobs:
+  verify-dev:
+    name: verify (dev)
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the gate suite
+        run: python -m unittest discover -s tests
+
+  promote-test:
+    name: promote (test)
+    if: github.ref == 'refs/heads/test'
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify against the test environment
+        run: python -m unittest discover -s tests
+
+  promote-cert:
+    name: promote (cert)
+    if: github.ref == 'refs/heads/cert'
+    runs-on: ubuntu-latest
+    environment: cert
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify for cert (owner tap recorded on the packet)
+        run: python -m unittest discover -s tests
+
+  promote-production:
+    name: promote (production)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify for production
+        run: python -m unittest discover -s tests

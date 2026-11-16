@@ -1,0 +1,150 @@
+{
+ "rates": {
+  "claude-fable-5-2|panel": {
+   "n": 3,
+   "rate": 1.0,
+   "success": 3
+  },
+  "claude-haiku-5-5|panel": {
+   "n": 16,
+   "rate": 0.9375,
+   "success": 15
+  },
+  "claude-opus-5-5|panel": {
+   "n": 13,
+   "rate": 0.8462,
+   "success": 11
+  },
+  "claude-sonnet-5-5|panel": {
+   "n": 25,
+   "rate": 0.84,
+   "success": 21
+  },
+  "gemini-3.1-flash-lite-preview|panel": {
+   "n": 2,
+   "rate": 0.5,
+   "success": 1
+  },
+  "gemini-3.1-flash-lite|panel": {
+   "n": 37,
+   "rate": 0.7027,
+   "success": 26
+  },
+  "gemini-3.1-pro-preview-customtools|panel": {
+   "n": 2,
+   "rate": 0.5,
+   "success": 1
+  },
+  "gemini-3.1-pro-preview|panel": {
+   "n": 7,
+   "rate": 0.4286,
+   "success": 3
+  },
+  "gemini-3.1-pro-preview|ruling": {
+   "n": 2,
+   "rate": 0.5,
+   "success": 1
+  },
+  "gemini-3.5-flash-lite|panel": {
+   "n": 2,
+   "rate": 1.0,
+   "success": 2
+  },
+  "gemini-3.5-flash|panel": {
+   "n": 7,
+   "rate": 0.8571,
+   "success": 6
+  },
+  "gemini-3.5-transcribe|panel": {
+   "n": 2,
+   "rate": 0.0,
+   "success": 0
+  },
+  "gemini-3.6-flash|lower-order": {
+   "n": 6,
+   "rate": 1.0,
+   "success": 6
+  },
+  "gemini-3.6-flash|panel": {
+   "n": 3,
+   "rate": 1.0,
+   "success": 3
+  },
+  "gemini-3.7-flash|panel": {
+   "n": 3,
+   "rate": 0.3333,
+   "success": 1
+  },
+  "gemini-3.8-flash|panel": {
+   "n": 2,
+   "rate": 0.5,
+   "success": 1
+  },
+  "gemini-4-argon|panel": {
+   "n": 3,
+   "rate": 1.0,
+   "success": 3
+  },
+  "gemini-4-carbon|panel": {
+   "n": 4,
+   "rate": 0.5,
+   "success": 2
+  },
+  "gemini-4-hydrogen|panel": {
+   "n": 4,
+   "rate": 0.5,
+   "success": 2
+  },
+  "gemini-robotics-er-2-preview|panel": {
+   "n": 2,
+   "rate": 0.5,
+   "success": 1
+  },
+  "gemma-4-26b-a4b-it|panel": {
+   "n": 3,
+   "rate": 0.3333,
+   "success": 1
+  },
+  "gemma-4-31b-it|panel": {
+   "n": 3,
+   "rate": 0.3333,
+   "success": 1
+  },
+  "grok-4.20-0309-non-reasoning|junior": {
+   "n": 2,
+   "rate": 1.0,
+   "success": 2
+  },
+  "grok-4.20-0309-non-reasoning|panel": {
+   "n": 5,
+   "rate": 1.0,
+   "success": 5
+  },
+  "grok-4.20-0309-reasoning|panel": {
+   "n": 7,
+   "rate": 1.0,
+   "success": 7
+  },
+  "grok-4.20-multi-agent-0309|panel": {
+   "n": 3,
+   "rate": 0.3333,
+   "success": 1
+  },
+  "grok-build-0.1|panel": {
+   "n": 2,
+   "rate": 1.0,
+   "success": 2
+  },
+  "haiku-5-5|panel": {
+   "n": 10,
+   "rate": 0.0,
+   "success": 0
+  },
+  "llama3.1:8b|panel": {
+   "n": 2,
+   "rate": 1.0,
+   "success": 2
+  }
+ },
+ "source": "desk feeds, final records only"
+}

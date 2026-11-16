@@ -3,3 +3,7 @@ __pycache__/
 .venv/
 ledger.jsonl
 .env
+/ops-ledger*
+/proof*
+/*.dispatch.jsonl
+/*.throttle.json*

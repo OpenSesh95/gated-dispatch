@@ -46,10 +46,24 @@ def append_row(
     snapshot: dict | None = None,
     owner_minutes: float = 0.0,
     gate: dict | None = None,
+    cost_override: float | None = None,
 ) -> dict:
     cost = 0.0
-    if (tokens_in or tokens_out) and provider:
-        cost = round(estimate_cost_usd(provider, model_served or model, tokens_in, tokens_out), 6)
+    if cost_override is not None:
+        # The run's attempts booked actuals (provider-exact where the
+        # provider returns them) — the ticket books the sum of its
+        # attempts, never a fresh token x list estimate (per-prompt $
+        # audit 2026-11-14: ticket read $0.000243 list vs $0.000108
+        # ticks-booked on the same dispatch).
+        cost = round(float(cost_override), 6)
+    elif (tokens_in or tokens_out) and provider:
+        try:
+            cost = round(estimate_cost_usd(provider, model_served or model, tokens_in, tokens_out), 6)
+        except KeyError:
+            # Unpriced served id (provider drift): the ticket must
+            # still land — priced at the requested model's rate,
+            # with model_match=false carrying the drift on the row.
+            cost = round(estimate_cost_usd(provider, model, tokens_in, tokens_out), 6)
     snapshot = snapshot or {}
     row = {
         "ticket": _next_ticket_id(path),
