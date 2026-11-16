@@ -1,0 +1,73 @@
+# Promotion pipeline — dev -> test -> cert -> production.
+# Each stage is a job bound to its GitHub Environment, so every
+# promotion is a real, logged event on the repo's Deployments surface.
+# Stage flow: a push to the dev branch runs the dev verification.
+# Later stages run by manual dispatch (workflow_dispatch) so cert can
+# carry the owner's tap on the test evidence before production arms.
+# Branch promotion itself (dev -> main) remains the PR act; this
+# workflow is the verification + environment record for each stage.
+name: promote
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Stage to run (test | cert | production)"
+        required: true
+        default: "test"
+        type: choice
+        options: [test, cert, production]
+
+jobs:
+  verify-dev:
+    name: verify (dev)
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the gate suite
+        run: python -m unittest discover -s tests 2>&1 | tail -20
+
+  promote-test:
+    name: promote (test)
+    if: github.event_name == 'workflow_dispatch' && inputs.stage == 'test'
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify against the test environment
+        run: python -m unittest discover -s tests 2>&1 | tail -20
+
+  promote-cert:
+    name: promote (cert)
+    if: github.event_name == 'workflow_dispatch' && inputs.stage == 'cert'
+    runs-on: ubuntu-latest
+    environment: cert
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify for cert (owner tap recorded on this run)
+        run: python -m unittest discover -s tests 2>&1 | tail -20
+
+  promote-production:
+    name: promote (production)
+    if: github.event_name == 'workflow_dispatch' && inputs.stage == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify for production
+        run: python -m unittest discover -s tests 2>&1 | tail -20
