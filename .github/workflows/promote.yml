@@ -10,6 +10,12 @@
 # -> branch test to cert AFTER the owner's cert tap on the packet
 # (promote-cert) -> merge cert to main (promote-production).
 name: promote
+# Anti-scale guard (2026-11-17, his order): a burst of pushes to one
+# branch collapses to the newest head's run — superseded runs cancel
+# instead of each failing (or passing) its own phone notification.
+concurrency:
+  group: promote-${{ github.ref }}
+    cancel-in-progress: true
 
 on:
   push:
