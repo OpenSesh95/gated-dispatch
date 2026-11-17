@@ -47,6 +47,7 @@ def append_row(
     owner_minutes: float = 0.0,
     gate: dict | None = None,
     cost_override: float | None = None,
+    cost_source: str = "",
 ) -> dict:
     cost = 0.0
     if cost_override is not None:
@@ -90,6 +91,12 @@ def append_row(
         "status": status,
         "checks": checks or {},
     }
+    if cost_source:
+        # Booking source (schema v1.1 value set). Carried on the row
+        # since grant-first (2026-11-17): envelopes.month_to_date
+        # buckets grant-offset draw apart from cash. Rows written
+        # before this field existed read as cash — their era's truth.
+        row["cost_source"] = cost_source
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(row, sort_keys=True) + "\n")
     return row
