@@ -122,6 +122,14 @@ def append_record(path: str, **fields) -> dict:
         # stamp on the final record of a routed run (table version +
         # hash + class + position). Null on unrouted runs.
         "routing": fields.get("routing"),
+        # PII masking (Increment 2 wiring, 2026-11-17): counts by
+        # class only — never values (the vault map never leaves the
+        # gate host). Null on unmasked runs.
+        "masking": fields.get("masking"),
+        # Grant-first booking (2026-11-17): the booking stamp on the
+        # final record of a grant-covered run (remaining before the
+        # ticket + the straddle flag). Null on cash-booked runs.
+        "grant": fields.get("grant"),
         "contract": fields.get("contract"),
         "queue_wait": fields.get("queue_wait"),
         "verify_ms": fields.get("verify_ms"),
