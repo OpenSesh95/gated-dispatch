@@ -41,7 +41,7 @@ OWNER_MINUTE_RATE_USD = 2.00  # interim rate, applied 2026-11-11 (NS-6)
 def month_to_date(ledger_path: str) -> dict:
     """Sum this UTC month's ticketed cost by envelope, lane, and total."""
     month = datetime.now(timezone.utc).strftime("%Y-%m")
-    totals = {"envelopes": {}, "lanes": {}, "total": 0.0}
+    totals = {"envelopes": {}, "lanes": {}, "total": 0.0, "grant": 0.0}
     if not os.path.exists(ledger_path):
         return totals
     with open(ledger_path, encoding="utf-8") as fh:
@@ -53,6 +53,13 @@ def month_to_date(ledger_path: str) -> dict:
             if not str(row.get("ts", "")).startswith(month):
                 continue
             cost = float(row.get("cost_usd", 0) or 0)
+            if row.get("cost_source") == "grant-offset":
+                # Grant-first (his ruling 2026-11-17): prepaid-credit
+                # draw is not cash — it never touches the cash
+                # envelopes, the lane ceilings, or the backstop. It
+                # accumulates in the grant bucket only.
+                totals["grant"] += cost
+                continue
             env = row.get("envelope")
             lane = row.get("lane")
             if env:
@@ -80,6 +87,7 @@ def preflight(ledger_path: str, envelope: str, lane: str) -> dict:
         "envelope_mtd_usd": round(env_spent, 6),
         "lane_mtd_usd": round(lane_spent, 6),
         "backstop_mtd_usd": round(mtd["total"], 6),
+        "grant_mtd_usd": round(mtd["grant"], 6),
     }
     if mtd["total"] >= BACKSTOP_USD:
         return {**snapshot, "decision": "blocked", "reason": "aggregate backstop reached"}
