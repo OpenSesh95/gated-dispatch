@@ -27,10 +27,26 @@ There is no bypass flag.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+def resolve_register_path():
+    """The per-run register resolution (E-1, ratified 2026-11-17):
+    the caller's GD_MASKING_REGISTER names the register for the
+    run; absent that, a register file at the gate home
+    (masking-register.json beside the tree root) engages by
+    default; absent both, the seam is inert and the run's masking
+    stamp records active=False. Returns a path string or None."""
+    env = os.environ.get("GD_MASKING_REGISTER")
+    if env:
+        return env
+    default = Path(__file__).resolve().parent.parent / \
+        "masking-register.json"
+    return str(default) if default.exists() else None
 
 
 class MaskingError(Exception):
