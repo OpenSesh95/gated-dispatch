@@ -27,9 +27,11 @@ from . import contracts as contracts_mod
 from . import dispatch_log as dispatch_log_mod
 from . import envelopes as envelopes_mod
 from . import gate as gate_mod
+from . import grants as grants_mod
 from . import lanes
 from . import ledger as ledger_mod
 from . import livecost as livecost_mod
+from . import masking as masking_mod
 from . import promotion as promotion_mod
 from . import routing as routing_mod
 
@@ -449,6 +451,48 @@ def run(
     # shape IS the PRICING_STALE stamp.
     final_extra["live_cost"] = livecost_mod.build_stamp(
         fire_provider, fire_model, slo_class, prompt, _rates)
+    # PII masking seam (Increment 2 wiring; Q-057's condition discharged
+    # by the 2026-11-17 retention verification — 16/16 KEEP with the
+    # keep-set active, incl. the merged-span split): when
+    # GD_MASKING_REGISTER names a register file, the prompt is masked
+    # here (after the stamp, before dispatch) and the completion is
+    # re-identified before verification. Fail-closed: a register that
+    # fails to load, or any mask failure, blocks the ticket. No
+    # register configured = the seam is inert. The neural detector
+    # binds behind the same seam when the production sidecar lands;
+    # the deterministic + register layers are live from this wiring.
+    mask_vault = None
+    masker = None
+    _reg_path = os.environ.get("GD_MASKING_REGISTER")
+    if _reg_path:
+        try:
+            masker = masking_mod.Masker(
+                masking_mod.Register.load(_reg_path))
+            mask_vault = masking_mod.Vault(loop_id)
+            prompt = masker.mask(prompt, mask_vault)
+            final_extra["masking"] = {"counts": dict(mask_vault.counts)}
+        except masking_mod.MaskingError as exc:
+            stall["cause"] = "masking"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status="blocked-masking:register", snapshot=snap,
+                checks={"masking": str(exc)}, **base,
+            ))
+    # Grant-first booking register (his ruling 2026-11-17): loaded
+    # before dispatch; a register that cannot be read blocks the
+    # ticket — booking correctness is never silently dropped. No
+    # register file = the seam is inert. The booking decision itself
+    # lands after the run completes (see the grant stamp below).
+    grant_register = None
+    try:
+        grant_register = grants_mod.load_register()
+    except grants_mod.GrantError as exc:
+        stall["cause"] = "grant-register"
+        return finish(ledger_mod.append_row(
+            ledger_path, tokens_in=0, tokens_out=0,
+            status="blocked-grant:register", snapshot=snap,
+            checks={"grant": str(exc)}, **base,
+        ))
     # Open-weight seats: the same bench ids serve on 2 seats (local
     # Jarvis · gcp Nightwatch). The run's provider names the seat;
     # the ticket records the seat that actually served.
@@ -482,8 +526,12 @@ def run(
         chain = list(spec.get("chain") or [])
         if spec["behavior"] == "degrade" and fire_model in chain:
             idx = chain.index(fire_model)
-            if idx + 1 < len(chain):
-                pair_model = chain[idx + 1]
+            pair_model = None
+            for _cand in chain[idx + 1:]:
+                if throttle_mod.lane_hold(_cand) is None:
+                    pair_model = _cand
+                    break
+            if pair_model is not None:
                 dispatched = True
                 throttle_checks["throttle_hedged"] = [fire_model, pair_model]
 
@@ -701,6 +749,8 @@ def run(
             checks=throttle_checks, **fire,
         ))
 
+    if mask_vault is not None:
+        completion.text = masker.reidentify(completion.text, mask_vault)
     _v0 = _monotonic_fn()
     result = verify_mod.verify(
         completion.text, required_terms=required_terms, expect_json=expect_json
@@ -720,6 +770,22 @@ def run(
         text=completion.text)
     checks["contract"] = contract_outcome
     final_extra["contract"] = contract_outcome
+    # Grant-first booking (his ruling 2026-11-17 10:59 CT): an
+    # Anthropic ticket covered by the prepaid credit books
+    # grant-offset, never cash. Decided here — after the contract
+    # assert reads the pricing basis, before both terminal records
+    # write — so the ledger row and the feed's final record carry
+    # the booking source. A ticket crossing the boundary books
+    # whole-ticket grant-offset with straddle=true (v1 rule).
+    if attempts and fire_provider == "anthropic" \
+            and attempts[-1]["cost_source"] == "list":
+        _grant = grants_mod.decide(
+            grant_register, "anthropic", ledger_path,
+            sum(att["cost_usd"] for att in attempts))
+        if _grant is not None:
+            attempts[-1]["cost_source"] = "grant-offset"
+            checks["grant"] = dict(_grant)
+            final_extra["grant"] = dict(_grant)
     if not result.passed:
         stall["cause"] = "verification"
         return finish(ledger_mod.append_row(
@@ -727,6 +793,7 @@ def run(
             tokens_in=completion.tokens_in, tokens_out=completion.tokens_out,
             status="rejected-verification", checks=checks, **served, **fire,
             cost_override=sum(att["cost_usd"] for att in attempts),
+            cost_source=attempts[-1]["cost_source"] if attempts else "",
         ))
 
     shown_ts = _now()
@@ -758,6 +825,7 @@ def run(
         checks=checks, owner_minutes=owner_minutes, gate=gate_info,
         **served, **fire,
         cost_override=sum(att["cost_usd"] for att in attempts),
+        cost_source=attempts[-1]["cost_source"] if attempts else "",
     ))
 
 
