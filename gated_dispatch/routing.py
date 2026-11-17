@@ -59,6 +59,16 @@ TABLE_HASH = "4ac7f8f70c628d102e17abdbe072f1469a142375e00dd296c911d9ee0adb628b"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
+
+# Judgment-bearing classes (E-1, ratified 2026-11-17, audit packet
+# item E-1 / I&A Finding F-20): the classes whose outputs ARE
+# judgments — a ruling, a verdict. A routed run on one of these
+# classes must carry a C-047 input manifest (cli.run refuses
+# without one, fail-closed): the input-side control that engages
+# by default at the seam. Widening this set is a supersede act on
+# the record, not a caller choice.
+JUDGMENT_CLASSES = frozenset({"qr-commission-ruling",
+                              "qr-panel-verdict"})
 FALLBACK_CLASS = "qr-quick-lookup"
 
 # Compute-nature layering (his ruling 2026-11-16, Architecture Map):

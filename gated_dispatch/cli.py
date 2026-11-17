@@ -28,6 +28,7 @@ from . import dispatch_log as dispatch_log_mod
 from . import envelopes as envelopes_mod
 from . import gate as gate_mod
 from . import grants as grants_mod
+from . import inputs as inputs_mod
 from . import lanes
 from . import ledger as ledger_mod
 from . import livecost as livecost_mod
@@ -341,6 +342,34 @@ def run(
             **base,
         ))
 
+    # Input-side control (E-1, ratified 2026-11-17; I&A Finding
+    # F-20): a routed run on a judgment-bearing class must carry a
+    # C-047 input manifest — the compartment record of what the
+    # judgment is made from. No manifest, or an invalid one,
+    # refuses here, before any provider call.
+    if routing_class in routing_mod.JUDGMENT_CLASSES:
+        if input_manifest is None:
+            snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+            stall["cause"] = "input"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status="blocked-input:manifest-required", snapshot=snap,
+                checks={"input": (
+                    f"class {routing_class} is judgment-bearing; a "
+                    "C-047 input manifest is required (E-1)")},
+                **base,
+            ))
+        _manifest_errors = inputs_mod.validate_manifest(input_manifest)
+        if _manifest_errors:
+            snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+            stall["cause"] = "input"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status="blocked-input:manifest-invalid", snapshot=snap,
+                checks={"input": "; ".join(_manifest_errors)},
+                **base,
+            ))
+
     # Promotion path guard (cluster enablement, ratified 2026-11-13):
     # a run claiming a swarm pattern must name a REGISTERED pattern whose
     # eval-gate evidence beat its class baseline, and the class must be a
@@ -453,24 +482,27 @@ def run(
         fire_provider, fire_model, slo_class, prompt, _rates)
     # PII masking seam (Increment 2 wiring; Q-057's condition discharged
     # by the 2026-11-17 retention verification — 16/16 KEEP with the
-    # keep-set active, incl. the merged-span split): when
-    # GD_MASKING_REGISTER names a register file, the prompt is masked
-    # here (after the stamp, before dispatch) and the completion is
-    # re-identified before verification. Fail-closed: a register that
-    # fails to load, or any mask failure, blocks the ticket. No
-    # register configured = the seam is inert. The neural detector
-    # binds behind the same seam when the production sidecar lands;
-    # the deterministic + register layers are live from this wiring.
+    # keep-set active, incl. the merged-span split): the register is
+    # resolved per run (E-1, ratified 2026-11-17: GD_MASKING_REGISTER,
+    # else a masking-register.json at the gate home, else inert with
+    # the state stamped on the ticket); when one resolves, the prompt
+    # is masked here (after the stamp, before dispatch) and the
+    # completion is re-identified before verification. Fail-closed: a
+    # register that fails to load, or any mask failure, blocks the
+    # ticket. The neural detector binds behind the same seam when the
+    # production sidecar lands; the deterministic + register layers
+    # are live from this wiring.
     mask_vault = None
     masker = None
-    _reg_path = os.environ.get("GD_MASKING_REGISTER")
+    _reg_path = masking_mod.resolve_register_path()
     if _reg_path:
         try:
             masker = masking_mod.Masker(
                 masking_mod.Register.load(_reg_path))
             mask_vault = masking_mod.Vault(loop_id)
             prompt = masker.mask(prompt, mask_vault)
-            final_extra["masking"] = {"counts": dict(mask_vault.counts)}
+            final_extra["masking"] = {
+                "active": True, "counts": dict(mask_vault.counts)}
         except masking_mod.MaskingError as exc:
             stall["cause"] = "masking"
             return finish(ledger_mod.append_row(
@@ -478,6 +510,11 @@ def run(
                 status="blocked-masking:register", snapshot=snap,
                 checks={"masking": str(exc)}, **base,
             ))
+    else:
+        # E-1 (ratified 2026-11-17): the seam evaluates on every
+        # run and its state lands on the ticket — inert is a
+        # recorded state, never a silent absence.
+        final_extra["masking"] = {"active": False}
     # Grant-first booking register (his ruling 2026-11-17): loaded
     # before dispatch; a register that cannot be read blocks the
     # ticket — booking correctness is never silently dropped. No
