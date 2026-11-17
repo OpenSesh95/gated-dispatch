@@ -39,12 +39,23 @@ Rules enforced at the chokepoint (cli.run):
 The stamp (integration binding, gate desk filing 2026-11-14): a routed
 run's final feed record carries routing = {table_version, table_hash,
 class, lane, position, unclassified, interim, composed_from}.
+
+Table v0.1 (2026-11-17, his routing-spread directive 11:13 CT, deploy
+lane): chains re-pointed so Claude is no longer the default where
+another lane fits the task class. OpenRouter's proven free seats enter
+chains for the first time (north-mini-code heads qr-coding-burst;
+nemotron-3-ultra joins qr-panel-verdict and qr-research). Gemini
+heads the drafting chains (canon-drafting, content-voice) with the
+Claude flagship kept at the judgment point. qr-commission-ruling is
+unchanged (the fork is charter, not a deploy gap) and
+qr-spiritual-study is unchanged (gold-source discipline defines the
+lane). Class block + hash updated at the table home in the same act.
 """
 
 from dataclasses import dataclass, field
 
-TABLE_VERSION = "v0"
-TABLE_HASH = "c6e44bbc3c18158f63a803eba0ed0e6cd2ee9ccb8f6aa6ddefb49507b6a234fb"
+TABLE_VERSION = "v0.1"
+TABLE_HASH = "4ac7f8f70c628d102e17abdbe072f1469a142375e00dd296c911d9ee0adb628b"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -126,25 +137,32 @@ CLASSES = {
         chain=(("xai", "grok-4.20-0309-non-reasoning"),),
         flagship=("xai", "grok-4.20-multi-agent-0309")),
     "qr-research": ClassSpec(
-        "qr-research", "Gemini library + Research Team",
-        chain=(("google", "gemini-3.6-flash"),),
+        "qr-research", "Gemini library + OpenRouter seat + Research Team",
+        chain=(("google", "gemini-3.6-flash"),
+               ("openrouter", "nemotron-3-ultra")),
         flagship=("google", "gemini-4-argon")),
     "qr-spiritual-study": ClassSpec(
         "qr-spiritual-study", "Library lane, gold source first",
         chain=(("google", "gemini-3.6-flash"),),
         flagship=("google", "gemini-4-argon")),
     "qr-canon-drafting": ClassSpec(
-        "qr-canon-drafting", "Claude architect",
-        chain=(("anthropic", "claude-sonnet-5-5"),),
+        "qr-canon-drafting", "Gemini draft + Claude architect",
+        chain=(("google", "gemini-3.6-flash"),
+               ("google", "gemini-4-argon"),
+               ("anthropic", "claude-sonnet-5-5")),
         flagship=("anthropic", "claude-opus-5-5")),
     "qr-content-voice": ClassSpec(
-        "qr-content-voice", "Claude cluster via studios + voice profile",
-        chain=(("anthropic", "claude-haiku-5-5"),
+        "qr-content-voice", "Multi-lane cluster via studios + voice profile",
+        chain=(("google", "gemini-3.6-flash"),
+               ("xai", "grok-4.20-0309-non-reasoning"),
+               ("anthropic", "claude-haiku-5-5"),
                ("anthropic", "claude-sonnet-5-5")),
         flagship=("anthropic", "claude-opus-5-5")),
     "qr-coding-burst": ClassSpec(
-        "qr-coding-burst", "Claude cluster - INTERIM (Courier gap)",
-        chain=(("anthropic", "claude-sonnet-5-5"),),
+        "qr-coding-burst", "Open-weight first - INTERIM (Courier gap)",
+        chain=(("openrouter", "north-mini-code"),
+               ("google", "gemini-3.6-flash"),
+               ("anthropic", "claude-sonnet-5-5")),
         flagship=("anthropic", "claude-opus-5-5"),
         interim=True),
     "qr-commission-ruling": ClassSpec(
@@ -154,6 +172,7 @@ CLASSES = {
     "qr-panel-verdict": ClassSpec(
         "qr-panel-verdict", "Panel via STD-0 gated dispatch",
         chain=(("google", "gemini-3.6-flash"),
+               ("openrouter", "nemotron-3-ultra"),
                ("xai", "grok-4.20-0309-non-reasoning"),
                ("anthropic", "claude-haiku-5-5")),
         flagship=("anthropic", "claude-opus-5-5")),
