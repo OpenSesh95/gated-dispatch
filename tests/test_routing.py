@@ -32,7 +32,7 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-panel-verdict", "google", "gemini-3.6-flash")
         self.assertTrue(d.allowed)
         self.assertEqual(d.stamp["position"], "chain-0")
-        self.assertEqual(d.stamp["table_version"], "v0.1")
+        self.assertEqual(d.stamp["table_version"], "v0.2")
         self.assertEqual(d.stamp["table_hash"], routing.TABLE_HASH)
 
     def test_spread_seats_admitted_v01(self):
@@ -64,6 +64,25 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-commission-ruling", "openrouter",
                             "nemotron-3-ultra")
         self.assertFalse(d.allowed)
+
+    def test_draft_check_designated_seat_v02(self):
+        # Table v0.2 (2026-11-17, AR-20261117-06): the compliance
+        # checker is a designated seat — opus admitted at chain-0,
+        # every other frontier seat is a class mismatch, and the
+        # class is NOT in JUDGMENT_CLASSES (no manifest gate taken).
+        d = routing.resolve("qr-draft-check", "anthropic",
+                            "claude-opus-5-5")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-0")
+        self.assertEqual(routing.select("qr-draft-check"),
+                         ("anthropic", "claude-opus-5-5"))
+        d = routing.resolve("qr-draft-check", "google",
+                            "gemini-3.6-flash")
+        self.assertFalse(d.allowed)
+        self.assertEqual(d.cause, "class-mismatch")
+        self.assertNotIn("qr-draft-check", routing.JUDGMENT_CLASSES)
+        self.assertEqual(routing.resolve_nature("qr-draft-check"),
+                         "probabilistic")
 
     def test_flagship_admitted_where_row_says_so(self):
         d = routing.resolve("qr-canon-drafting", "anthropic",
@@ -140,7 +159,7 @@ class ResolveTest(unittest.TestCase):
         s = routing.job_stamp("qr-research")
         self.assertEqual(s["routing_class"], "qr-research")
         self.assertEqual(s["selected"], "google/gemini-3.6-flash")
-        self.assertEqual(s["table_version"], "v0.1")
+        self.assertEqual(s["table_version"], "v0.2")
 
     def test_job_stamp_geneva_direct(self):
         s = routing.job_stamp("qr-career-ops")
@@ -223,7 +242,44 @@ class RunIntegrationTest(unittest.TestCase):
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-live-wire")
         self.assertEqual(rec["routing"]["position"], "chain-0")
-        self.assertEqual(rec["routing"]["table_version"], "v0.1")
+        self.assertEqual(rec["routing"]["table_version"], "v0.2")
+
+    def test_draft_check_containment_refuses_commodity_walk(self):
+        # v0.4.35 containment: a junior-loop draft check's throttle
+        # walk lands on a commodity seat outside the class's
+        # admitted set — the run refuses before the transport fires.
+        row = cli.run(
+            "anything", "claude-opus-5-5",
+            ledger_path=self.ledger, provider="anthropic",
+            auto_approve=True, loop_class="junior",
+            routing_class="qr-draft-check",
+            transport=boom_transport,
+        )
+        self.assertEqual(row["status"], "blocked-router:class-mismatch")
+        rec = self._final_dispatch_record()
+        self.assertEqual(rec["routing"]["class"], "qr-draft-check")
+        self.assertEqual(rec["routing"]["table_version"], "v0.2")
+
+    def test_draft_check_loop_serves_designated_seat(self):
+        # The fail-closed draft-check loop class fires the checker
+        # seat as itself; the verdict-shaped return approves.
+        def anthropic_raw(text="PASS"):
+            return {"model": "claude-opus-5-5",
+                    "content": [{"type": "text", "text": text}],
+                    "usage": {"input_tokens": 100,
+                              "output_tokens": 10}}
+        row = cli.run(
+            "check this draft", "claude-opus-5-5",
+            ledger_path=self.ledger, provider="anthropic",
+            envelope="frontier", required_terms=("PASS",),
+            auto_approve=True, loop_class="draft-check",
+            routing_class="qr-draft-check",
+            transport=lambda m, p: anthropic_raw(),
+        )
+        self.assertEqual(row["status"], "approved")
+        self.assertEqual(row["model_served"], "claude-opus-5-5")
+        rec = self._final_dispatch_record()
+        self.assertEqual(rec["routing"]["class"], "qr-draft-check")
 
     def test_routed_mismatch_blocked_before_dispatch(self):
         row = cli.run(

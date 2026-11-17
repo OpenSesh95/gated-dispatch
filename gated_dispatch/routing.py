@@ -50,12 +50,19 @@ Claude flagship kept at the judgment point. qr-commission-ruling is
 unchanged (the fork is charter, not a deploy gap) and
 qr-spiritual-study is unchanged (gold-source discipline defines the
 lane). Class block + hash updated at the table home in the same act.
+
+Table v0.2 (2026-11-17, Reliability commission AR-20261117-06):
+qr-draft-check added — the outward-draft compliance check on its
+designated checker seat (anthropic/claude-opus-5-5, chain of one: no
+spread, no degrade; a substituted checker is a different gate).
+Verdicts only; the checker never drafts. JUDGMENT_CLASSES is NOT
+widened by this row (a supersede question, named at the table home).
 """
 
 from dataclasses import dataclass, field
 
-TABLE_VERSION = "v0.1"
-TABLE_HASH = "4ac7f8f70c628d102e17abdbe072f1469a142375e00dd296c911d9ee0adb628b"
+TABLE_VERSION = "v0.2"
+TABLE_HASH = "176992e414049b430929fb0f95e7a25dffb1c4f0ed8c67d5f058a2c62d29f985"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -94,6 +101,7 @@ CLASS_NATURE = {
     "qr-canon-drafting": "probabilistic",
     "qr-content-voice": "probabilistic",
     "qr-coding-burst": "algorithmic",
+    "qr-draft-check": "probabilistic",
     "qr-commission-ruling": "probabilistic",
     "qr-panel-verdict": "algorithmic",
     "qr-combination": "probabilistic",
@@ -175,6 +183,10 @@ CLASSES = {
                ("anthropic", "claude-sonnet-5-5")),
         flagship=("anthropic", "claude-opus-5-5"),
         interim=True),
+    "qr-draft-check": ClassSpec(
+        "qr-draft-check", "Anthropic Opus seat (designated checker)",
+        chain=(("anthropic", "claude-opus-5-5"),),
+        flagship=("anthropic", "claude-opus-5-5")),
     "qr-commission-ruling": ClassSpec(
         "qr-commission-ruling", "Fork (Geneva + unprimed Opus)",
         chain=(),
