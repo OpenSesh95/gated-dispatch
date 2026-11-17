@@ -11,7 +11,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from gated_dispatch import cli, routing  # noqa: E402
+from gated_dispatch import cli, routing, throttle  # noqa: E402
 
 
 def xai_raw(text="lane live", model="grok-4.20-0309-non-reasoning",
@@ -32,8 +32,38 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-panel-verdict", "google", "gemini-3.6-flash")
         self.assertTrue(d.allowed)
         self.assertEqual(d.stamp["position"], "chain-0")
-        self.assertEqual(d.stamp["table_version"], "v0")
+        self.assertEqual(d.stamp["table_version"], "v0.1")
         self.assertEqual(d.stamp["table_hash"], routing.TABLE_HASH)
+
+    def test_spread_seats_admitted_v01(self):
+        # Table v0.1 (2026-11-17, routing-spread directive): the
+        # non-Claude seats seated by the rebalance resolve at their
+        # chain positions; ruling containment is unchanged.
+        d = routing.resolve("qr-coding-burst", "openrouter",
+                            "north-mini-code")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-0")
+        self.assertEqual(routing.select("qr-coding-burst"),
+                         ("openrouter", "north-mini-code"))
+        d = routing.resolve("qr-panel-verdict", "openrouter",
+                            "nemotron-3-ultra")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-1")
+        d = routing.resolve("qr-research", "openrouter",
+                            "nemotron-3-ultra")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-1")
+        d = routing.resolve("qr-canon-drafting", "google",
+                            "gemini-3.6-flash")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-0")
+        d = routing.resolve("qr-content-voice", "xai",
+                            "grok-4.20-0309-non-reasoning")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-1")
+        d = routing.resolve("qr-commission-ruling", "openrouter",
+                            "nemotron-3-ultra")
+        self.assertFalse(d.allowed)
 
     def test_flagship_admitted_where_row_says_so(self):
         d = routing.resolve("qr-canon-drafting", "anthropic",
@@ -110,7 +140,7 @@ class ResolveTest(unittest.TestCase):
         s = routing.job_stamp("qr-research")
         self.assertEqual(s["routing_class"], "qr-research")
         self.assertEqual(s["selected"], "google/gemini-3.6-flash")
-        self.assertEqual(s["table_version"], "v0")
+        self.assertEqual(s["table_version"], "v0.1")
 
     def test_job_stamp_geneva_direct(self):
         s = routing.job_stamp("qr-career-ops")
@@ -165,6 +195,14 @@ class RunIntegrationTest(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.ledger = os.path.join(self.dir, "l.jsonl")
+        # The xAI lane hold is operational state (2026-11-17); the
+        # live-wire fixture exercises grok service dispatch, so it
+        # lifts the hold (test_lane_hold covers the hold itself).
+        self._holds = throttle.LANE_HOLDS
+        throttle.LANE_HOLDS = {}
+
+    def tearDown(self):
+        throttle.LANE_HOLDS = self._holds
 
     def _final_dispatch_record(self):
         path = os.path.join(self.dir, "l.dispatch.jsonl")
@@ -185,7 +223,7 @@ class RunIntegrationTest(unittest.TestCase):
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-live-wire")
         self.assertEqual(rec["routing"]["position"], "chain-0")
-        self.assertEqual(rec["routing"]["table_version"], "v0")
+        self.assertEqual(rec["routing"]["table_version"], "v0.1")
 
     def test_routed_mismatch_blocked_before_dispatch(self):
         row = cli.run(

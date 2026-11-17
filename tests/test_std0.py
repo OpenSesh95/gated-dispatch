@@ -211,8 +211,13 @@ class ThrottleTest(unittest.TestCase):
         self.ledger = os.path.join(self.tmp.name, "ledger.jsonl")
         self.dlog = os.path.join(self.tmp.name, "ledger.dispatch.jsonl")
         self.tstate = os.path.join(self.tmp.name, "ledger.throttle.json")
+        # The xAI lane hold is operational state (2026-11-17); these
+        # fixtures exercise grok service dispatch, so they lift it.
+        self._holds = throttle.LANE_HOLDS
+        throttle.LANE_HOLDS = {}
 
     def tearDown(self):
+        throttle.LANE_HOLDS = self._holds
         self.tmp.cleanup()
 
     def _records(self):
@@ -403,8 +408,13 @@ class HedgeAndStallTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.ledger = os.path.join(self.tmp.name, "ledger.jsonl")
         self.dlog = os.path.join(self.tmp.name, "ledger.dispatch.jsonl")
+        # The xAI lane hold is operational state (2026-11-17); these
+        # fixtures exercise grok service dispatch, so they lift it.
+        self._holds = throttle.LANE_HOLDS
+        throttle.LANE_HOLDS = {}
 
     def tearDown(self):
+        throttle.LANE_HOLDS = self._holds
         self.tmp.cleanup()
 
     def _records(self):
@@ -427,7 +437,9 @@ class HedgeAndStallTest(unittest.TestCase):
                       loop_class="lower-order", auto_approve=True,
                       hedge=True, transport=transport)
         self.assertEqual(row["status"], "approved")
-        self.assertEqual(row["model"], "grok-4.20-0309-non-reasoning")
+        # v0.1 spread (2026-11-17): the hedge partner is now the
+        # chain's first ranked seat — nemotron-3-ultra, not grok.
+        self.assertEqual(row["model"], "nemotron-3-ultra")
         self.assertIn("throttle_hedged", row["checks"])
         recs = self._records()
         self.assertEqual(len(recs), 2)
@@ -524,8 +536,13 @@ class ResponsesTransportTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.ledger = os.path.join(self.tmp.name, "ledger.jsonl")
         self.dlog = os.path.join(self.tmp.name, "ledger.dispatch.jsonl")
+        # The xAI lane hold is operational state (2026-11-17); these
+        # fixtures exercise grok service dispatch, so they lift it.
+        self._holds = throttle.LANE_HOLDS
+        throttle.LANE_HOLDS = {}
 
     def tearDown(self):
+        throttle.LANE_HOLDS = self._holds
         self.tmp.cleanup()
 
     @staticmethod
@@ -1600,13 +1617,22 @@ class InputManifestTest(unittest.TestCase):
         self.assertFalse(inputs.reproducibility(stamp, None)["reproducible"])
 
     def test_manifest_rides_the_feed_and_the_summary(self):
+        def _transport(m, p):
+            # Shape-aware since the v0.1 spread (2026-11-17): the
+            # walk may serve an OpenRouter seat, whose parser needs
+            # an OpenAI-shaped response, not a Gemini one.
+            if m.startswith("gemini"):
+                return gemini_raw(model="gemini-3.5-flash-lite")
+            return {"model": m,
+                    "choices": [{"message": {"content": "lane live"}}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5}}
+
         with tempfile.TemporaryDirectory() as tmp:
             ledger = os.path.join(tmp, "l.jsonl")
             row = cli.run(
                 "Reply with exactly: lane live", "gemini-3.5-flash-lite",
                 ledger_path=ledger, provider="google", loop_class="lower-order",
-                transport=lambda m, p: gemini_raw(
-                    model="gemini-3.5-flash-lite"),
+                transport=_transport,
                 input_manifest=self.GOOD, auto_approve=True)
             self.assertIn(row["status"], ("approved", "rejected-verification"))
             feed = os.path.join(tmp, "l.dispatch.jsonl")
