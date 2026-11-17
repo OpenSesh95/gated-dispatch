@@ -19,7 +19,12 @@ from dataclasses import dataclass, field
 CONNECTOR_HELPERS = {
     "anthropic": "~/workspace/custom-connectors/custom.anthropic/bin/anthropic_call.py",
     "google": "~/workspace/custom-connectors/custom.google-gemini/bin/gemini_call.py",
-    "xai": "~/workspace/custom-connectors/custom.xai/bin/xai_call.py",
+    # xai serves through the custom.grok registration (repointed
+    # 2026-11-17, gate v0.4.32): the working key was captured there
+    # and its proofs pass, while custom.xai still holds the
+    # truncated value that failed all morning (400 at the API,
+    # surfaced at the gate as helper-failure ConnectionErrors).
+    "xai": "~/workspace/custom-connectors/custom.grok/bin/grok_call.py",
     "local": "~/workspace/custom-connectors/custom.local-ollama/bin/ollama_call.py",
     "gcp": "~/workspace/custom-connectors/custom.gcp-ollama/bin/ollama_call.py",
     "openrouter": "~/workspace/custom-connectors/custom.openrouter/bin/openrouter_call.py",
