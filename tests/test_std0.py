@@ -250,13 +250,17 @@ class ThrottleTest(unittest.TestCase):
         row = self._run("hi", "gemini-3.6-flash", provider="google",
                         loop_class="sweep", transport=xai_stub())
         self.assertEqual(row["status"], "approved")
-        self.assertEqual(row["model"], "grok-4.20-0309-non-reasoning")
+        # Post-spread (gate v0.4.29, routing table v0.1): the
+        # commodity walk ranks the free OpenRouter head first, so
+        # the degrade lands on nemotron-3-ultra, not the pre-spread
+        # grok pick; the :free serve books free-tier, not list.
+        self.assertEqual(row["model"], "nemotron-3-ultra")
         self.assertEqual(row["checks"]["throttle_degraded_from"], "gemini-3.6-flash")
         recs = self._records()
         self.assertEqual(recs[0]["degraded_from"], "gemini-3.6-flash")
         self.assertEqual(recs[-1]["loop_class"], "lower-order")
         self.assertEqual(recs[-1]["run_outcome"], "approved")
-        self.assertEqual(recs[-1]["cost_source"], "list")
+        self.assertEqual(recs[-1]["cost_source"], "free-tier")
 
     def test_deliberative_fails_closed_on_budget_breach(self):
         state = throttle.ThrottleState(self.tstate)
@@ -643,10 +647,15 @@ class C023BatchAndRulingsTest(unittest.TestCase):
         self.assertEqual(row["status"], "blocked-throttle:banned-model")
 
     def test_gemma_cost_source_free_tier(self):
+        # The gemma seat serves via the OpenRouter wired lane
+        # (OPENROUTER_SERVE_MAP, C-038 wiring): a google-provider
+        # request re-pins to it, so the run rides the openrouter
+        # transport shape. Booked $0 with cost_source free-tier —
+        # the assertion this test was written for, on the lane
+        # that actually serves the seat today.
         row = cli.run("hi", "gemma-4-31b-it", ledger_path=self.ledger,
-                      provider="google", loop_class="panel",
-                      auto_approve=True,
-                      transport=lambda m, p: gemini_raw(model="gemma-4-31b-it"))
+                      provider="openrouter", loop_class="panel",
+                      auto_approve=True, transport=xai_stub())
         self.assertEqual(row["status"], "approved")
         rec = self._records()[-1]
         self.assertEqual(rec["cost_source"], "free-tier")
@@ -706,11 +715,18 @@ class NamedSeatModeTest(unittest.TestCase):
         self.assertEqual(rec["loop_class"], "junior")
 
     def test_chain_default_still_degrades(self):
+        # Post-spread (gate v0.4.29): the chain walk's ranked pick
+        # for an unregistered seat is the free OpenRouter head, so
+        # the transport answers per served lane (gemini shape for
+        # google seats, OpenAI shape for openrouter seats).
+        def aware(m, p):
+            if m.startswith(("gemini", "gemma")):
+                return gemini_raw(model=m)
+            return xai_stub()(m, p)
         row = cli.run("hi", "gemini-3.5-flash-lite", ledger_path=self.ledger,
                       provider="google", loop_class="junior",
-                      auto_approve=True,
-                      transport=lambda m, p: gemini_raw(model="gemini-3.6-flash"))
-        self.assertEqual(row["model"], "gemini-3.6-flash")
+                      auto_approve=True, transport=aware)
+        self.assertEqual(row["model"], "nemotron-3-ultra")
         self.assertEqual(self._records()[-1]["seat_mode"], "chain")
 
     def test_named_breach_stops_without_degrade(self):
@@ -1163,10 +1179,17 @@ class RulingLintTest(unittest.TestCase):
 class GroupsDFTest(unittest.TestCase):
     def test_mutant_kill_rate_and_survivors(self):
         out = mutants.run_mutants()
-        self.assertIn("qed-shape", out["survived"])
-        self.assertIn("term-in-noise", out["survived"])
+        # C-041 R1's verdict mode closed the two historical
+        # survivors: the mutant table's correct_pass flags were
+        # updated then (both now expect rejection); this test
+        # asserts the gate's current, designed verdicts — a full
+        # kill set, no survivors.
+        self.assertIn("qed-shape", out["killed"])
+        self.assertIn("term-in-noise", out["killed"])
         self.assertIn("whitespace-only", out["killed"])
         self.assertIn("control-clean", out["killed"])
+        self.assertEqual(out["survived"], [])
+        self.assertEqual(out["kill_rate"], 1.0)
         self.assertGreater(out["kill_rate"], 0.5)
 
     def test_rate_claim_interval_and_indeterminate(self):
