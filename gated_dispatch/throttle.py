@@ -614,8 +614,15 @@ RETIRED_MODELS = {
 # the commodity workhorse pin (chain head). gemini-3.8-flash leaves
 # the chain (BENCH probation, R-2). A commodity request naming
 # gemini-3.5-flash re-pins to the pin at resolve (see REPINS).
+# v0.1 spread extension (2026-11-17, his routing-spread directive;
+# gate v0.4.29): the two PROVEN OpenRouter free seats join the chain
+# behind the pin. The C-042 live-cost re-rank prices them at $0, so
+# they take degradable volume on price; the pin keeps the static
+# head and the direct-request re-pin. Claude falls to last resort.
 COMMODITY_CHAIN = [
     "gemini-3.6-flash",
+    "nemotron-3-ultra",
+    "north-mini-code",
     "grok-4.20-0309-non-reasoning",
     "claude-haiku-5-5",
 ]
@@ -625,6 +632,28 @@ COMMODITY_CHAIN = [
 # only its labeled LC-3 panel-voice role (deliberative classes fire
 # it as requested — the re-pin binds commodity classes only).
 REPINS = {"gemini-3.5-flash": "gemini-3.6-flash"}
+
+# Lane holds (operational, 2026-11-17): a provider whose credential
+# is invalid at the provider gets NO service dispatch — every seat
+# on the lane stops as banned with the reason on the record, in
+# every loop class, until a proof passes and the entry is removed
+# (the lift is this one entry, changed on the record). Measurement
+# (seat_mode named) is exempt, per the GL-15 pattern: the canary
+# and the credential proof must still be able to probe the lane.
+# History: the xAI entry stood 2026-11-17 ~11:5x–12:54 CT (stored
+# value was a wrapped/truncated copy, not an xAI key) and was
+# LIFTED when the /v1/models proof passed on custom.grok (CoS
+# handoff 12:54 CT; the raw console key passes). The registry is
+# empty at rest; the mechanism stays for the next dead lane.
+LANE_HOLDS: dict[str, str] = {}
+
+
+def lane_hold(model: str) -> str | None:
+    """The hold reason when the model's provider lane is held."""
+    rule = MODELS.get(model)
+    if rule is None:
+        return None
+    return LANE_HOLDS.get(rule.provider)
 
 # ---------------------------------------------------------------------------
 # Class-priority queue (C-026 line 1)
@@ -912,6 +941,9 @@ def resolve(loop_class: str, requested: str, state: ThrottleState, now: float,
         raise BannedModel(
             f"{requested}: quarantined in throttle state (probation trigger fired)"
         )
+    _hold = lane_hold(requested)
+    if _hold is not None:
+        raise BannedModel(f"{requested}: lane held — {_hold}")
     if spec["behavior"] == "fail-closed":
         if state.budget_breached(requested, now):
             raise BudgetBreached(
@@ -935,7 +967,8 @@ def resolve(loop_class: str, requested: str, state: ThrottleState, now: float,
     start = chain.index(effective) if effective in chain else 0
     ordered = chain[start:] + chain[:start]
     for candidate in ordered:
-        if state.budget_breached(candidate, now) or state.is_quarantined(candidate):
+        if state.budget_breached(candidate, now) or state.is_quarantined(candidate) \
+                or lane_hold(candidate) is not None:
             continue
         return Resolution(
             model=candidate,

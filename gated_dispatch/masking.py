@@ -202,9 +202,35 @@ class Masker:
                 add(m.start(), m.end(), stem, "name")
 
         # 4. neural detectors behind the seam (Rampart, then Presidio)
+        #    A detected span can swallow keep-set terms inside a longer
+        #    span ("jandhyam after snanam" read as one GIVEN_NAME —
+        #    retention verification 2026-11-17: exact-span keep checks
+        #    held 14/16, the merged span cost the other 2). Split
+        #    detected spans around whole-word keep terms and mask only
+        #    the remaining fragments.
+        def add_detected(start, end, label):
+            frag = text[start:end]
+            cuts = []
+            for term in reg.never:
+                for m in re.finditer(r"(?<![A-Za-z])" + re.escape(term) +
+                                     r"(?![A-Za-z])", frag,
+                                     re.IGNORECASE):
+                    cuts.append((m.start(), m.end()))
+            if not cuts:
+                add(start, end, label, "detected")
+                return
+            cuts.sort()
+            pos = 0
+            for cs, ce in cuts:
+                if cs > pos and frag[pos:cs].strip():
+                    add(start + pos, start + cs, label, "detected")
+                pos = max(pos, ce)
+            if pos < len(frag) and frag[pos:].strip():
+                add(start + pos, end, label, "detected")
+
         for detect in self.detectors:
             for start, end, label in detect(text):
-                add(start, end, label, "detected")
+                add_detected(start, end, label)
 
         # resolve overlaps: earliest start wins, longest span wins ties
         spans.sort(key=lambda s: (s[0], -(s[1] - s[0])))

@@ -5,8 +5,12 @@ these cases reproduce its shapes with invented values: the partial-span
 handle, the parenthesized phone, the domain-vocabulary keep-set.
 """
 
+import json
+import os
+import tempfile
 import unittest
 
+from gated_dispatch import cli, throttle
 from gated_dispatch.masking import Masker, MaskingError, Register, Vault
 
 
@@ -92,6 +96,25 @@ class MaskingTest(unittest.TestCase):
         masked = masker.mask("Purnima is Friday.", Vault("GD-TEST-0005"))
         self.assertIn("Purnima", masked)  # never-mask beats the detector
 
+    def test_keep_terms_inside_merged_detected_span(self):
+        # Retention verification 2026-11-17: Rampart read "jandhyam
+        # after snanam" as ONE span; the exact-span keep check lost
+        # both terms (14/16). The split must hold both + round-trip.
+        def merged_detector(text):
+            i = text.lower().find("jandhyam")
+            j = text.lower().find("snanam")
+            if i < 0 or j < 0:
+                return []
+            return [(i, j + len("snanam"), "GIVEN_NAME")]
+        reg = Register(never={"jandhyam", "snanam"})
+        masker = Masker(reg, detectors=[merged_detector])
+        vault = Vault("GD-TEST-0007")
+        text = "He changed the jandhyam after snanam in the morning."
+        masked = masker.mask(text, vault)
+        self.assertIn("jandhyam", masked)
+        self.assertIn("snanam", masked)
+        self.assertEqual(masker.reidentify(masked, vault), text)
+
     def test_fail_closed_on_detector_error(self):
         def broken(text):
             raise RuntimeError("engine down")
@@ -106,6 +129,71 @@ class MaskingTest(unittest.TestCase):
         self.assertEqual(self.vault.counts.get("identifier"), 1)
         for value in self.vault.counts.values():
             self.assertIsInstance(value, int)
+
+
+class WiringTest(unittest.TestCase):
+    """cli.run seam: register configured -> mask before dispatch,
+    re-identify before verification; bad register -> fail-closed."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.ledger = os.path.join(self.dir, "l.jsonl")
+        self.reg = os.path.join(self.dir, "register.json")
+        with open(self.reg, "w") as fh:
+            json.dump({"names": {"Asha Rao": "SPOUSE"},
+                       "never": ["purnima"]}, fh)
+        self._saved = os.environ.get("GD_MASKING_REGISTER")
+        # The xAI lane hold is operational state (2026-11-17); this
+        # fixture exercises grok service dispatch, so it lifts it.
+        self._holds = throttle.LANE_HOLDS
+        throttle.LANE_HOLDS = {}
+
+    def tearDown(self):
+        throttle.LANE_HOLDS = self._holds
+        if self._saved is None:
+            os.environ.pop("GD_MASKING_REGISTER", None)
+        else:
+            os.environ["GD_MASKING_REGISTER"] = self._saved
+
+    def _run(self, transport):
+        return cli.run(
+            "Ask Asha Rao about Purnima, then reply: lane live",
+            "grok-4.20-0309-non-reasoning",
+            ledger_path=self.ledger, provider="xai",
+            envelope="frontier", required_terms=("lane live",),
+            auto_approve=True, loop_class="lower-order",
+            transport=transport,
+        )
+
+    def test_prompt_masked_and_completion_reidentified(self):
+        os.environ["GD_MASKING_REGISTER"] = self.reg
+        seen = {}
+
+        def transport(m, p):
+            seen["prompt"] = p
+            return {"model": m,
+                    "choices": [{"message": {
+                        "content": "[SPOUSE_1] lane live"}}],
+                    "usage": {"prompt_tokens": 14, "completion_tokens": 4}}
+
+        row = self._run(transport)
+        self.assertEqual(row["status"], "approved")
+        self.assertIn("[SPOUSE_1]", seen["prompt"])
+        self.assertNotIn("Asha Rao", seen["prompt"])
+        self.assertIn("Purnima", seen["prompt"])  # keep-set survives
+        path = os.path.join(self.dir, "l.dispatch.jsonl")
+        rec = [json.loads(x) for x in open(path) if x.strip()][-1]
+        self.assertEqual(rec["masking"]["counts"].get("name"), 1)
+
+    def test_missing_register_blocks_before_dispatch(self):
+        os.environ["GD_MASKING_REGISTER"] = os.path.join(
+            self.dir, "absent.json")
+
+        def boom(m, p):
+            raise AssertionError("transport must not be called")
+
+        row = self._run(boom)
+        self.assertEqual(row["status"], "blocked-masking:register")
 
 
 if __name__ == "__main__":
