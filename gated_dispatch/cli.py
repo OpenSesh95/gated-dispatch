@@ -474,6 +474,37 @@ def run(
         ))
     fire_model = resolution.model
     fire_provider = throttle_mod.MODELS[fire_model].provider
+    # Routed-class containment (v0.4.35; found by the AR-20261117-06
+    # wiring proof): the throttle walk answers to the LOOP class,
+    # whose commodity chain can land outside the ROUTING class's
+    # admitted set — the proof's junior-loop draft check walked from
+    # its designated checker seat to a free commodity seat. The
+    # routing class is the outer boundary: a routed run fires only
+    # on a seat its class admits (chain + flagship; local-estate
+    # seats are admitted on every class). A walk that lands outside
+    # refuses here, before the transport fires.
+    if routing_class is not None and fire_model != model \
+            and not decision.stamp.get("unclassified"):
+        _spec = routing_mod.CLASSES.get(decision.stamp.get("class"))
+        if _spec is not None and (_spec.chain or _spec.flagship):
+            _admitted = {m for _, m in _spec.chain}
+            if _spec.flagship:
+                _admitted.add(_spec.flagship[1])
+            if fire_model not in _admitted \
+                    and fire_provider not in routing_mod.LOCAL_PROVIDERS:
+                snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+                stall["cause"] = "router"
+                return finish(ledger_mod.append_row(
+                    ledger_path, tokens_in=0, tokens_out=0,
+                    status="blocked-router:class-mismatch",
+                    snapshot=snap,
+                    checks={"routing": (
+                        f"throttle walk landed on {fire_model}, "
+                        f"outside class "
+                        f"{decision.stamp.get('class')} admitted "
+                        f"set; routed runs fire only on class seats")},
+                    **base,
+                ))
     # C-042: the live-cost stamp for the fired model rides the final
     # + stopped records from here on (run records; feed adoption is
     # Treasury's §7 call). build_stamp never raises — its failure
