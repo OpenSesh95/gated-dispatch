@@ -671,6 +671,9 @@ CLASS_RANK = {
     "ruling": 0,
     "commission": 1,
     "panel": 2,
+    # v0.4.35: the draft-check loop gates outward sends — a desk
+    # waits on the verdict — so it ranks with the panel class.
+    "draft-check": 2,
     "junior": 3,
     "defect": 4,
     "lower-order": 5,
@@ -697,6 +700,10 @@ LOOP_CLASSES: dict[str, dict] = {
     "panel": {"behavior": "fail-closed", "chain": []},
     "commission": {"behavior": "fail-closed", "chain": []},
     "ruling": {"behavior": "fail-closed", "chain": []},
+    # Designated-seat service (v0.4.35, AR-20261117-06): the
+    # outward-draft compliance check fires its checker seat or
+    # stops — substitution would be a different gate.
+    "draft-check": {"behavior": "fail-closed", "chain": []},
     "junior": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
     "defect": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
     "lower-order": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
