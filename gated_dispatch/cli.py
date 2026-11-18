@@ -34,6 +34,7 @@ from . import ledger as ledger_mod
 from . import livecost as livecost_mod
 from . import masking as masking_mod
 from . import promotion as promotion_mod
+from . import prompts as prompts_mod
 from . import routing as routing_mod
 
 _SUCCESS_RATES_PATH = os.path.join(
@@ -511,6 +512,60 @@ def run(
     # shape IS the PRICING_STALE stamp.
     final_extra["live_cost"] = livecost_mod.build_stamp(
         fire_provider, fire_model, slo_class, prompt, _rates)
+    # Priming wrap (routing table v0.3; his commission 2026-11-17
+    # 23:22 CT): a ROUTED service dispatch on an EXTERNAL lane must
+    # carry a C-039 prompt stamp whose every entry verifies against
+    # the priming catalogue — registered id, at the stamped version,
+    # with the catalogue's hash. No stamp, an unknown id, or a hash
+    # that does not match the registered priming refuses here,
+    # before masking and before the transport fires: no unprimed
+    # external dispatch. Scope, named: routed runs only (the wrap is
+    # the router's); named/measurement mode is exempt (GL-15
+    # pattern); local-estate lanes are not external. Unrouted
+    # service dispatch keeps caller-attested stamps (C-039 validity
+    # rules) — the boundary is stated, not smoothed.
+    if routing_class is not None and seat_mode != "named" \
+            and fire_provider not in routing_mod.LOCAL_PROVIDERS:
+        _reg_path = os.environ.get("GD_PROMPT_REGISTRY") or os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "docs", "prompt-registry.jsonl")
+        _entries = (prompt_stamp or {}).get("prompts") or {}
+        _priming_cause = None
+        _priming_detail = ""
+        if not _entries:
+            _priming_cause = "no-stamp"
+            _priming_detail = "no C-039 prompt stamp on the run"
+        else:
+            for _entry in _entries.values():
+                _row = prompts_mod.lookup(
+                    _reg_path, _entry.get("prompt_id", ""),
+                    _entry.get("version"))
+                if _row is None:
+                    _priming_cause = "unregistered"
+                    _priming_detail = (
+                        f"prompt_id {_entry.get('prompt_id')!r} "
+                        f"v{_entry.get('version')} is not in the "
+                        f"priming catalogue")
+                    break
+                if _entry.get("sha256") != _row["sha256"]:
+                    _priming_cause = "hash-mismatch"
+                    _priming_detail = (
+                        f"stamp hash for {_entry.get('prompt_id')!r} "
+                        f"does not match the catalogue row")
+                    break
+        if _priming_cause is not None:
+            snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+            stall["cause"] = "priming"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status=f"blocked-priming:{_priming_cause}",
+                snapshot=snap,
+                checks={"priming": (
+                    f"routed external dispatch refused: "
+                    f"{_priming_detail}; the priming catalogue wraps "
+                    f"every external-lane call (table v0.3)")},
+                **base,
+            ))
     # PII masking seam (Increment 2 wiring; Q-057's condition discharged
     # by the 2026-11-17 retention verification — 16/16 KEEP with the
     # keep-set active, incl. the merged-span split): the register is

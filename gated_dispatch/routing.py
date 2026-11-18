@@ -57,12 +57,25 @@ designated checker seat (anthropic/claude-opus-5-5, chain of one: no
 spread, no degrade; a substituted checker is a different gate).
 Verdicts only; the checker never drafts. JUDGMENT_CLASSES is NOT
 widened by this row (a supersede question, named at the table home).
+
+Table v0.3 (2026-11-17, his direct commission 23:22 CT — five-lane
+router): the compute-nature taxonomy extends from three lanes to
+five — deterministic · algorithmic · statistical · reasoning ·
+probabilistic — and gains the MODEL BINDING table (MODEL_BINDINGS
+below): nature/modality -> designated models, bound ONLY where a
+smoke proof exists (binding source: FinOps' capability map
+2026-11-17). LIST-ONLY models are scenery and stay unbound; the two
+seeded exceptions carry their proof class on their face. The
+priming wrap rides this version in cli.run: a routed service
+dispatch on an external lane must carry a C-039 prompt stamp whose
+entries verify against the catalogue — no unprimed external
+dispatch.
 """
 
 from dataclasses import dataclass, field
 
-TABLE_VERSION = "v0.2"
-TABLE_HASH = "176992e414049b430929fb0f95e7a25dffb1c4f0ed8c67d5f058a2c62d29f985"
+TABLE_VERSION = "v0.3"
+TABLE_HASH = "8ec463b09b47995247b2a80427c7ddf7c355660a18d7f920257a5928cb4b8f5f"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -78,19 +91,26 @@ JUDGMENT_CLASSES = frozenset({"qr-commission-ruling",
                               "qr-panel-verdict"})
 FALLBACK_CLASS = "qr-quick-lookup"
 
-# Compute-nature layering (his ruling 2026-11-16, Architecture Map):
-# every task/action/workflow classifies by the nature of its
+# Compute-nature layering (his ruling 2026-11-16, Architecture Map;
+# extended to five lanes by his direct commission 2026-11-17 23:22
+# CT): every task/action/workflow classifies by the nature of its
 # computation, and the nature rides the stamps beside the class.
 #   deterministic - rules/scripts; zero model tokens; plain compute.
+#     Dispatch REFUSED at the chokepoint (standing rule).
 #   algorithmic   - fixed control flow, model steps inside, outputs
-#                   verified deterministically; open-weight lanes.
+#     verified deterministically; code/local-first.
+#   statistical   - fast/small-model work: classification, vision,
+#     transcription, triage — priced per task, verified cheap.
+#   reasoning     - mid-tier reasoning models; frontier tokens only
+#     on escalation to probabilistic.
 #   probabilistic - open-ended judgment; frontier tokens at judgment
-#                   points only.
+#     points only.
 # The nature classifies the WORKFLOW, not each step (a panel is
 # algorithmic as a workflow though its seats judge). Class defaults
 # below are starting points; the stamper classifies on-touch and may
 # override per piece.
-NATURES = ("deterministic", "algorithmic", "probabilistic")
+NATURES = ("deterministic", "algorithmic", "statistical",
+           "reasoning", "probabilistic")
 CLASS_NATURE = {
     "qr-quick-lookup": "algorithmic",
     "qr-life-ops": "deterministic",
@@ -111,6 +131,8 @@ CLASS_NATURE = {
 _LANE_HINT = {
     "deterministic": "none (plain compute, zero tokens)",
     "algorithmic": "open-weight first (local / gcp / open lanes)",
+    "statistical": "bound small/fast seats (MODEL_BINDINGS); priced per task",
+    "reasoning": "bound reasoning seats (MODEL_BINDINGS); frontier on escalation only",
     "probabilistic": "frontier at judgment points only",
 }
 DEFAULT_WEIGHT = {"impact": "medium", "deliverables": 1}
@@ -124,6 +146,101 @@ def resolve_nature(class_id: str, nature: str | None = None) -> str:
             raise ValueError("unknown nature: %r" % (nature,))
         return nature
     return CLASS_NATURE.get(class_id, "probabilistic")
+
+
+# ---------------------------------------------------------------------
+# Model binding table (table v0.3; his direct commission 2026-11-17
+# 23:22 CT). Binding source: FinOps' capability map 2026-11-17 —
+# a model binds ONLY on a smoke proof in that map; LIST-ONLY models
+# are scenery and stay unbound. Two tiers: DISPATCHABLE = the gate's
+# text seam can serve the seat today (registered + priced);
+# DESIGNATED = the router's designated model for a modality the
+# text seam does not serve (audio, image) — callers use the named
+# lane's own endpoint; the binding is the designation of record,
+# not a dispatch promise. Proof strings cite the map; seeded
+# exceptions carry their proof class on their face.
+
+
+@dataclass(frozen=True)
+class Binding:
+    provider: str
+    model: str
+    modality: str
+    tier: str
+    proof: str
+    note: str = ""
+
+
+MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
+    # Dispatch of deterministic work is refused at the chokepoint —
+    # no model binds, by rule.
+    "deterministic": (),
+    # Algorithmic stays code/local-first: the open-weight lanes are
+    # the standing binding; no new model binds in v0.3.
+    "algorithmic": (),
+    "statistical": (
+        Binding("openrouter", "tencent/hy4-flash", "vision+text",
+                "dispatchable",
+                "PROVEN — capability map: red-square vision test exact; cheapest vision in the three realms ($0.035/$0.14 LIST)"),
+        Binding("openrouter", "deepseek/deepseek-v4.1-flash-1017",
+                "text/classification", "dispatchable",
+                "PROVEN — capability map: ran live; price-watch verified 2026-11-17 ($0.036/$0.50)",
+                "reasoning-first: set max_tokens generously, it spends on reasoning before content. GAUNTLET-CONTAINED at v0.3 (named-mode service only, its registration class); chain seating rides a gauntlet-exit act — the map's run is the first exit evidence"),
+        Binding("xai", "grok-4.20-0309-non-reasoning", "vision+text",
+                "dispatchable",
+                "PROVEN — capability map: vision exact ($0.00018/call TICKS)"),
+        Binding("google", "gemini-3.1-flash-lite", "text/triage",
+                "dispatchable",
+                "SEEDED by the commission's list; map class LIST-ONLY (lane proven via gemini-3.5-flash)",
+                "THINKING BUDGET REQUIRED (the map's verified warning): Gemini flash models burn thought tokens by default and starve small output budgets — set the budget explicitly; the transport parameter is a named follow-up"),
+        Binding("openrouter", "mistralai/voxtral-small-24b-2507",
+                "speech-to-text", "designated",
+                "PROVEN — capability map: transcript exact ($0.0003037 per 3.4s clip TICKS, ~$0.0054/min)",
+                "audio seam — not served through the text seam"),
+        Binding("google", "gemini-3.5-transcribe", "speech-to-text",
+                "designated",
+                "PROVEN — capability map: near-exact, dedicated audioTranscription output",
+                "audio seam — not served through the text seam"),
+    ),
+    "reasoning": (
+        Binding("google", "gemini-3.6-flash", "text", "dispatchable",
+                "Served seat of the map-proven gemini-3.5-flash line (REPINS 3.5->3.6, canary drift 0093); 3.6 live-proven across gate dispatches",
+                "flash thinking budgets apply (see the statistical flash-lite warning)"),
+        Binding("xai", "grok-4.20-0309-reasoning", "text",
+                "dispatchable",
+                "Family proven — capability map: 4.20 non-reasoning vision exact; the reasoning variant is catalog-live and gate-registered"),
+    ),
+    "probabilistic": (
+        Binding("anthropic", "claude-opus-5-5", "text/judgment",
+                "dispatchable",
+                "Unchanged — the standing judgment seat (table v0.1/v0.2 flagship)"),
+    ),
+    "image-gen": (
+        Binding("xai", "grok-imagine-image", "image generation",
+                "designated",
+                "PROVEN — capability map: image returned, $0.0200/image TICKS exact",
+                "per-image pricing (no token row); xAI images endpoint; b64_json only under ZDR"),
+        Binding("google", "gemini-3.1-flash-lite-image",
+                "image generation", "designated",
+                "PROVEN — capability map: 390 KB JPEG returned, 1,120 image tokens/image verified",
+                "image-token pricing; not served through the text seam"),
+    ),
+    "tts": (
+        Binding("google", "gemini-3.8-flash-lite-tts",
+                "text-to-speech", "designated",
+                "PROVEN — capability map: 33 chars -> 3.36s speech (voice Kore), token counts verified",
+                "the only TTS lane in the three realms"),
+    ),
+}
+
+
+def bindings_for(key: str) -> tuple[Binding, ...]:
+    """The binding rows for a nature or modality key. Unknown keys
+    raise — an unbound lane is a stated fact (empty tuple on a known
+    key), never a silent guess."""
+    if key not in MODEL_BINDINGS:
+        raise ValueError(f"unknown binding key {key!r}")
+    return MODEL_BINDINGS[key]
 
 
 def nature_lane_hint(nature: str) -> str:

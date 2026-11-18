@@ -139,6 +139,7 @@ PRICES = {
     ("openrouter", 'google/gemini-omni-1.1-flash'): (1.5000, 9.0000, "OpenRouter catalog pull 2026-11-12 (C-038 gauntlet)"),
     ("openrouter", 'ricursiveai/ripple-65b-preview'): (0.2000, 0.6000, "OpenRouter catalog pull 2026-11-12 (C-038 gauntlet)"),
     ("openrouter", 'tencent/hy4'): (0.4170, 1.2505, "OpenRouter catalog pull 2026-11-12 (C-038 gauntlet)"),
+    ("openrouter", 'tencent/hy4-flash'): (0.035, 0.14, "FinOps capability map 2026-11-17 (LIST); smoke-proven on the lane (vision exact); bound statistical seat, table v0.3"),
     ("openrouter", 'motif-technologies/motif-3'): (0.3000, 1.2000, "OpenRouter catalog pull 2026-11-12 (C-038 gauntlet)"),
     ("openrouter", 'z-ai/glm-5.3-flashx-legal'): (0.3700, 1.2500, "OpenRouter catalog pull 2026-11-12 (C-038 gauntlet)"),
     ("openrouter", 'particle-ai/particle-1'): (0.0600, 0.5000, "OpenRouter /api/v1/models, verified 2026-11-17 (price watch; C-038 gauntlet)"),
@@ -595,7 +596,7 @@ PRICES = {
     ("gcp", "gemma-4-27b"): (0.00, 0.00, "Ollama rotation candidate, C-031 census 2026-11-12 — id form VERIFY at pull"),
 }
 
-PRICE_TABLE_VERSION = "2026-11-17.1"
+PRICE_TABLE_VERSION = "2026-11-17.2"
 
 # Effective-dated step-ups (per-prompt $ audit routing, 2026-11-14; his
 # word via CoS, FinOps coordinating; live BEFORE the step dates).
