@@ -8,10 +8,11 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from gated_dispatch import cli, routing, throttle  # noqa: E402
+from gated_dispatch import cli, prompts, routing, throttle  # noqa: E402
 
 
 def xai_raw(text="lane live", model="grok-4.20-0309-non-reasoning",
@@ -32,7 +33,7 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-panel-verdict", "google", "gemini-3.6-flash")
         self.assertTrue(d.allowed)
         self.assertEqual(d.stamp["position"], "chain-0")
-        self.assertEqual(d.stamp["table_version"], "v0.1")
+        self.assertEqual(d.stamp["table_version"], "v0.5")
         self.assertEqual(d.stamp["table_hash"], routing.TABLE_HASH)
 
     def test_spread_seats_admitted_v01(self):
@@ -64,6 +65,25 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-commission-ruling", "openrouter",
                             "nemotron-3-ultra")
         self.assertFalse(d.allowed)
+
+    def test_draft_check_designated_seat_v02(self):
+        # Table v0.2 (2026-11-17, AR-20261117-06): the compliance
+        # checker is a designated seat — opus admitted at chain-0,
+        # every other frontier seat is a class mismatch, and the
+        # class is NOT in JUDGMENT_CLASSES (no manifest gate taken).
+        d = routing.resolve("qr-draft-check", "anthropic",
+                            "claude-opus-5-5")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-0")
+        self.assertEqual(routing.select("qr-draft-check"),
+                         ("anthropic", "claude-opus-5-5"))
+        d = routing.resolve("qr-draft-check", "google",
+                            "gemini-3.6-flash")
+        self.assertFalse(d.allowed)
+        self.assertEqual(d.cause, "class-mismatch")
+        self.assertNotIn("qr-draft-check", routing.JUDGMENT_CLASSES)
+        self.assertEqual(routing.resolve_nature("qr-draft-check"),
+                         "probabilistic")
 
     def test_flagship_admitted_where_row_says_so(self):
         d = routing.resolve("qr-canon-drafting", "anthropic",
@@ -140,7 +160,7 @@ class ResolveTest(unittest.TestCase):
         s = routing.job_stamp("qr-research")
         self.assertEqual(s["routing_class"], "qr-research")
         self.assertEqual(s["selected"], "google/gemini-3.6-flash")
-        self.assertEqual(s["table_version"], "v0.1")
+        self.assertEqual(s["table_version"], "v0.5")
 
     def test_job_stamp_geneva_direct(self):
         s = routing.job_stamp("qr-career-ops")
@@ -200,6 +220,16 @@ class RunIntegrationTest(unittest.TestCase):
         # lifts the hold (test_lane_hold covers the hold itself).
         self._holds = throttle.LANE_HOLDS
         throttle.LANE_HOLDS = {}
+        # v0.3 priming wrap: approved routed runs carry a verified
+        # fixture stamp against a tmp catalogue.
+        reg = os.path.join(self.dir, "registry.jsonl")
+        rec = prompts.register(reg, "fx-priming", "task",
+                               "fixture priming text", "test",
+                               "v0.3 priming fixture")
+        self.stamp = prompts.build_stamp([rec])
+        env = mock.patch.dict(os.environ, {"GD_PROMPT_REGISTRY": reg})
+        env.start()
+        self.addCleanup(env.stop)
 
     def tearDown(self):
         throttle.LANE_HOLDS = self._holds
@@ -217,13 +247,52 @@ class RunIntegrationTest(unittest.TestCase):
             envelope="frontier", required_terms=("lane live",),
             auto_approve=True, loop_class="lower-order",
             routing_class="qr-live-wire",
+            prompt_stamp=self.stamp,
             transport=lambda m, p: xai_raw(),
         )
         self.assertEqual(row["status"], "approved")
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-live-wire")
         self.assertEqual(rec["routing"]["position"], "chain-0")
-        self.assertEqual(rec["routing"]["table_version"], "v0.1")
+        self.assertEqual(rec["routing"]["table_version"], "v0.5")
+
+    def test_draft_check_containment_refuses_commodity_walk(self):
+        # v0.4.35 containment: a junior-loop draft check's throttle
+        # walk lands on a commodity seat outside the class's
+        # admitted set — the run refuses before the transport fires.
+        row = cli.run(
+            "anything", "claude-opus-5-5",
+            ledger_path=self.ledger, provider="anthropic",
+            auto_approve=True, loop_class="junior",
+            routing_class="qr-draft-check",
+            transport=boom_transport,
+        )
+        self.assertEqual(row["status"], "blocked-router:class-mismatch")
+        rec = self._final_dispatch_record()
+        self.assertEqual(rec["routing"]["class"], "qr-draft-check")
+        self.assertEqual(rec["routing"]["table_version"], "v0.5")
+
+    def test_draft_check_loop_serves_designated_seat(self):
+        # The fail-closed draft-check loop class fires the checker
+        # seat as itself; the verdict-shaped return approves.
+        def anthropic_raw(text="PASS"):
+            return {"model": "claude-opus-5-5",
+                    "content": [{"type": "text", "text": text}],
+                    "usage": {"input_tokens": 100,
+                              "output_tokens": 10}}
+        row = cli.run(
+            "check this draft", "claude-opus-5-5",
+            ledger_path=self.ledger, provider="anthropic",
+            envelope="frontier", required_terms=("PASS",),
+            auto_approve=True, loop_class="draft-check",
+            routing_class="qr-draft-check",
+            prompt_stamp=self.stamp,
+            transport=lambda m, p: anthropic_raw(),
+        )
+        self.assertEqual(row["status"], "approved")
+        self.assertEqual(row["model_served"], "claude-opus-5-5")
+        rec = self._final_dispatch_record()
+        self.assertEqual(rec["routing"]["class"], "qr-draft-check")
 
     def test_routed_mismatch_blocked_before_dispatch(self):
         row = cli.run(
@@ -254,6 +323,7 @@ class RunIntegrationTest(unittest.TestCase):
             envelope="frontier", required_terms=("lane live",),
             auto_approve=True, loop_class="lower-order",
             routing_class="qr-live-wire",
+            prompt_stamp=self.stamp,
             transport=lambda m, p: xai_raw(),
         )
         self.assertEqual(row["status"], "approved")
@@ -277,3 +347,129 @@ class RunIntegrationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FiveLaneTest(unittest.TestCase):
+    """Table v0.3 (his commission 2026-11-17 23:22 CT): five natures,
+    the model binding table, and the priming wrap."""
+
+    def test_five_natures(self):
+        self.assertEqual(
+            routing.NATURES,
+            ("deterministic", "algorithmic", "statistical",
+             "reasoning", "probabilistic"))
+        self.assertEqual(
+            routing.resolve_nature("qr-research", "statistical"),
+            "statistical")
+        self.assertEqual(
+            routing.resolve_nature("qr-research", "reasoning"),
+            "reasoning")
+        self.assertEqual(routing.TABLE_VERSION, "v0.5")
+
+    def test_bindings_shape(self):
+        self.assertEqual(routing.bindings_for("deterministic"), ())
+        algo = {b.model for b in routing.bindings_for("algorithmic")}
+        self.assertEqual(algo, {"qwen3:14b", "deepseek-r1:14b",
+                                "llama3.1:8b"})
+        stat = {b.model for b in routing.bindings_for("statistical")}
+        self.assertEqual(stat, {"mistralai/voxtral-small-24b-2507",
+                                "gemini-3.5-transcribe",
+                                "tencent/hy4-flash",
+                                "gemini-3.8-flash-lite-tts",
+                                "gemini-3.5-flash",
+                                "gemini-3.1-flash-lite"})
+        reas = {b.model for b in routing.bindings_for("reasoning")}
+        self.assertEqual(reas, {"deepseek/deepseek-v4.1-flash-1017",
+                                "tencent/hy4-flash",
+                                "grok-4.20-0309-non-reasoning",
+                                "gemini-3.5-flash"})
+        prob = {b.model for b in routing.bindings_for("probabilistic")}
+        self.assertEqual(prob, {"claude-opus-5-5", "grok-imagine-image",
+                                "gemini-3.1-flash-lite-image"})
+        with self.assertRaises(ValueError):
+            routing.bindings_for("holographic")
+
+    def test_dispatchable_bindings_registered_and_priced(self):
+        from gated_dispatch import pricing
+        for key in ("statistical", "reasoning", "probabilistic"):
+            for b in routing.bindings_for(key):
+                if b.tier != "dispatchable":
+                    continue
+                self.assertIn(b.model, throttle.MODELS, b.model)
+                pricing.price_info(b.provider, b.model)
+
+    def test_scenery_stays_unbound(self):
+        # The annex classes the Grok reasoning variant scenery (only
+        # non-reasoning was smoked); video binds nothing.
+        bound = {b.model for key in
+                 ("deterministic", "algorithmic", "statistical",
+                  "reasoning", "probabilistic")
+                 for b in routing.bindings_for(key)}
+        self.assertNotIn("grok-4.20-0309-reasoning", bound)
+        self.assertNotIn("grok-imagine-video", bound)
+
+    def test_flash_lite_rebound_as_seeded_exception(self):
+        # v0.5: re-bound by his direct word over the annex's scenery
+        # class — the class rides the binding's face.
+        row = next(b for b in routing.bindings_for("statistical")
+                   if b.model == "gemini-3.1-flash-lite")
+        self.assertIn("SEEDED EXCEPTION", row.proof)
+        self.assertIn("THINKING BUDGET", row.note)
+
+
+class PrimingWrapTest(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.ledger = os.path.join(self.dir, "l.jsonl")
+        self._holds = throttle.LANE_HOLDS
+        throttle.LANE_HOLDS = {}
+        reg = os.path.join(self.dir, "registry.jsonl")
+        rec = prompts.register(reg, "fx-priming", "task",
+                               "fixture priming text", "test",
+                               "v0.3 priming fixture")
+        self.stamp = prompts.build_stamp([rec])
+        self._rec = rec
+        env = mock.patch.dict(os.environ, {"GD_PROMPT_REGISTRY": reg})
+        env.start()
+        self.addCleanup(env.stop)
+        self.addCleanup(
+            lambda: setattr(throttle, "LANE_HOLDS", self._holds))
+
+    def _run(self, **kw):
+        kw.setdefault("ledger_path", self.ledger)
+        kw.setdefault("provider", "xai")
+        kw.setdefault("envelope", "frontier")
+        kw.setdefault("auto_approve", True)
+        kw.setdefault("loop_class", "lower-order")
+        kw.setdefault("routing_class", "qr-live-wire")
+        kw.setdefault("required_terms", ("lane live",))
+        return cli.run("Reply with exactly: lane live",
+                       "grok-4.20-0309-non-reasoning", **kw)
+
+    def test_no_stamp_refuses(self):
+        row = self._run(transport=boom_transport)
+        self.assertEqual(row["status"], "blocked-priming:no-stamp")
+        self.assertEqual(row["cost_usd"], 0.0)
+
+    def test_unregistered_stamp_refuses(self):
+        bad = prompts.build_stamp(
+            [{"prompt_id": "ghost", "species": "task", "version": 1,
+              "sha256": "0" * 64}])
+        row = self._run(prompt_stamp=bad, transport=boom_transport)
+        self.assertEqual(row["status"], "blocked-priming:unregistered")
+
+    def test_hash_mismatch_refuses(self):
+        bad = prompts.build_stamp(
+            [dict(self._rec, sha256="0" * 64)])
+        row = self._run(prompt_stamp=bad, transport=boom_transport)
+        self.assertEqual(row["status"], "blocked-priming:hash-mismatch")
+
+    def test_verified_stamp_proceeds(self):
+        row = self._run(prompt_stamp=self.stamp,
+                        transport=lambda m, p: xai_raw())
+        self.assertEqual(row["status"], "approved")
+
+    def test_named_mode_exempt(self):
+        row = self._run(seat_mode="named",
+                        transport=lambda m, p: xai_raw())
+        self.assertEqual(row["status"], "approved")

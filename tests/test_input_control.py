@@ -16,7 +16,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from gated_dispatch import cli, masking
+from gated_dispatch import cli, masking, prompts
 
 
 GOOD = {"life_domain": "cooking", "query_nature": "lookup",
@@ -40,6 +40,14 @@ class JudgmentManifestTest(unittest.TestCase):
         env = mock.patch.dict(os.environ, {}, clear=False)
         env.start()
         os.environ.pop("GD_MASKING_REGISTER", None)
+        # v0.3 priming wrap: the approved routed runs in this class
+        # carry a verified fixture stamp.
+        reg = os.path.join(self.tmp.name, "registry.jsonl")
+        rec = prompts.register(reg, "fx-priming", "task",
+                               "fixture priming text", "test",
+                               "v0.3 priming fixture")
+        self.stamp = prompts.build_stamp([rec])
+        os.environ["GD_PROMPT_REGISTRY"] = reg
         self.addCleanup(env.stop)
         self.addCleanup(self.tmp.cleanup)
 
@@ -47,6 +55,7 @@ class JudgmentManifestTest(unittest.TestCase):
         kw.setdefault("ledger_path", self.ledger)
         kw.setdefault("envelope", "frontier")
         kw.setdefault("auto_approve", True)
+        kw.setdefault("prompt_stamp", self.stamp)
         return cli.run(**kw)
 
     def test_judgment_class_without_manifest_refuses(self):
