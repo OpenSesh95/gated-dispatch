@@ -133,6 +133,7 @@ MODELS: dict[str, ModelRule] = {
     'google/gemini-omni-1.1-flash': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'ricursiveai/ripple-65b-preview': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'tencent/hy4': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
+    'tencent/hy4-flash': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'motif-technologies/motif-3': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'z-ai/glm-5.3-flashx-legal': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'particle-ai/particle-1': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
