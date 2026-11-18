@@ -82,12 +82,29 @@ word (00:50 CT) — gemini-3.1-flash-lite is RE-BOUND under
 statistical as a seeded exception over the annex's scenery class,
 its class and the thinking-budget warning on the binding's face.
 Rides the same cert packet as v0.4.
+
+Table v0.6 (2026-11-18, gate v0.4.40): the statistical EMBEDDING
+seat binds — gemini-embedding-001, designated, on FinOps' proof
+(a single embedContent call, 3072-dimension vector, < $0.001).
+The annex's named embeddings gap closes. Rides the v0.4.39 patch
+cert packet as its second item.
+
+Table v0.7 (2026-11-18, gate v0.4.41): qr-draft-check RE-BINDS,
+Shape B (his ruling 01:22 CT) — the checker chain AND the
+flagship seat move from claude-opus-5-5 to
+grok-4.20-0309-reasoning, on FinOps' frontier-proof (draft-check
+91.89 = Opus exactly, 0 form fails, ~1/7 the leg cost). The gate
+desk's Shape A read (flagship stays Opus as the appeal court) is
+recorded as dissent in the CHANGELOG; his call stands. Rides the
+patch cert packet as its third item.
 """
 
 from dataclasses import dataclass, field
 
-TABLE_VERSION = "v0.5"
-TABLE_HASH = "7cef48230418171eeb4e3afd3f4c93ad63c7b94a9911687bcab6133b4dc0e051"
+from . import throttle as throttle_mod
+
+TABLE_VERSION = "v0.7"
+TABLE_HASH = "ae2b665e7872ab71983df67e9efc55ddbe0cda16ad2f8a0b5c08859c49bc8484"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -225,6 +242,10 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
                 "text-to-speech", "designated",
                 "PROVEN — capability map: 33 chars -> 3.36s speech (voice Kore), token counts verified",
                 "the estate's ONLY voice — single-source gap named in the annex"),
+        Binding("google", "gemini-embedding-001", "embeddings",
+                "designated",
+                "PROVEN — FinOps proof 2026-11-18: a single embedContent call returned a 3072-dimension vector, cost < $0.001",
+                "the statistical lane's embedding seat — the annex's named gap, closed by this proof. Not served through the text seam; callers use the Gemini embedContent endpoint"),
         Binding("google", "gemini-3.1-flash-lite", "text/triage",
                 "dispatchable",
                 "SEEDED EXCEPTION — re-bound by his direct word 2026-11-18 00:50 CT over the annex's scenery class (cataloged only; the lane is proven via gemini-3.5-flash)",
@@ -334,9 +355,9 @@ CLASSES = {
         flagship=("anthropic", "claude-opus-5-5"),
         interim=True),
     "qr-draft-check": ClassSpec(
-        "qr-draft-check", "Anthropic Opus seat (designated checker)",
-        chain=(("anthropic", "claude-opus-5-5"),),
-        flagship=("anthropic", "claude-opus-5-5")),
+        "qr-draft-check", "xAI Grok reasoning seat (designated checker)",
+        chain=(("xai", "grok-4.20-0309-reasoning"),),
+        flagship=("xai", "grok-4.20-0309-reasoning")),
     "qr-commission-ruling": ClassSpec(
         "qr-commission-ruling", "Fork (Geneva + unprimed Opus)",
         chain=(),
@@ -526,7 +547,17 @@ def resolve(class_id: str, provider: str, model: str,
             f"class {spec.class_id} is Geneva-direct; frontier "
             f"request {provider}/{model} refuses")
 
-    pair = (provider, model)
+    # Seat re-pins (throttle.REPINS — canary-drift re-pins, C-023
+    # R-1): dispatch fires the EFFECTIVE seat, so admission judges
+    # the effective seat. A request naming the drifted id of a class
+    # seat is admitted at the seat's position, with the re-pin named
+    # on the stamp. (Found by the 2026-11-18 E2E sweep: the annex-
+    # bound gemini-3.5-flash refused every routed class because the
+    # chains carry its re-pin, gemini-3.6-flash.)
+    effective = throttle_mod.REPINS.get(model, model)
+    if effective != model:
+        stamp["repinned_from"] = model
+    pair = (provider, effective)
     if pair in spec.chain:
         stamp["position"] = f"chain-{spec.chain.index(pair)}"
         return Decision(True, stamp)
