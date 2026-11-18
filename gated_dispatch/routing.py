@@ -70,12 +70,18 @@ priming wrap rides this version in cli.run: a routed service
 dispatch on an external lane must carry a C-039 prompt stamp whose
 entries verify against the catalogue — no unprimed external
 dispatch.
+
+Table v0.4 (2026-11-17, gate v0.4.37): the binding table is
+RECONCILED to FinOps' deployment annex (the map's MODEL→LANE
+assignment form, filed the same night) — see the binding-table
+comment for the deltas. v0.3 stood on dev only and was never
+certified; v0.4 supersedes it before any cert packet.
 """
 
 from dataclasses import dataclass, field
 
-TABLE_VERSION = "v0.3"
-TABLE_HASH = "8ec463b09b47995247b2a80427c7ddf7c355660a18d7f920257a5928cb4b8f5f"
+TABLE_VERSION = "v0.4"
+TABLE_HASH = "47f6862621ba7b73a567aaea1695fb66073f4dd28ddfeea87cd0a6b0ee7b7870"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -150,15 +156,22 @@ def resolve_nature(class_id: str, nature: str | None = None) -> str:
 
 # ---------------------------------------------------------------------
 # Model binding table (table v0.3; his direct commission 2026-11-17
-# 23:22 CT). Binding source: FinOps' capability map 2026-11-17 —
-# a model binds ONLY on a smoke proof in that map; LIST-ONLY models
-# are scenery and stay unbound. Two tiers: DISPATCHABLE = the gate's
-# text seam can serve the seat today (registered + priced);
-# DESIGNATED = the router's designated model for a modality the
-# text seam does not serve (audio, image) — callers use the named
-# lane's own endpoint; the binding is the designation of record,
-# not a dispatch promise. Proof strings cite the map; seeded
-# exceptions carry their proof class on their face.
+# 23:22 CT). Binding source: FinOps' capability map 2026-11-17 and
+# its deployment annex (MODEL→LANE assignments, filed the same
+# night) — a model binds ONLY on a smoke proof; LIST-ONLY models
+# are scenery and stay unbound. RECONCILED at v0.4 (2026-11-17,
+# gate v0.4.37) to the annex's assignments: the local trio binds
+# under algorithmic; deepseek + grok bind under reasoning; the
+# image-gen + tts rows fold under probabilistic + statistical per
+# the annex; gemini-3.1-flash-lite and grok-4.20-0309-reasoning are
+# UNBOUND (the annex classes both scenery — only the non-reasoning
+# Grok variant was smoked, and flash-lite text is cataloged only).
+# Two tiers: DISPATCHABLE = the gate's text seam can serve the seat
+# today (registered + priced); DESIGNATED = the router's designated
+# model for a modality the text seam does not serve (audio, image)
+# — callers use the named lane's own endpoint; the binding is the
+# designation of record, not a dispatch promise. Proof strings cite
+# the map/annex.
 
 
 @dataclass(frozen=True)
@@ -173,63 +186,73 @@ class Binding:
 
 MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
     # Dispatch of deterministic work is refused at the chokepoint —
-    # no model binds, by rule.
+    # no model binds, by rule (annex: code only, $0 tokens).
     "deterministic": (),
-    # Algorithmic stays code/local-first: the open-weight lanes are
-    # the standing binding; no new model binds in v0.3.
-    "algorithmic": (),
+    # Algorithmic (code/local-first): the Draw-1-proven local trio
+    # (annex assignments; $0 cash, duty-priced under the GPU-hour
+    # envelope).
+    "algorithmic": (
+        Binding("local", "qwen3:14b", "local workhorse legs",
+                "dispatchable",
+                "PROVEN — Draw 1 baselines 2026-11-15: field-acc 0.990 (annex)"),
+        Binding("local", "deepseek-r1:14b", "local reasoning legs",
+                "dispatchable",
+                "PROVEN — Draw 1: field-acc 0.285 (annex)",
+                "bind only where its measured shape fits (annex)"),
+        Binding("local", "llama3.1:8b", "local legs", "dispatchable",
+                "PROVEN — Draw 1: 0.000 field-acc as a FORM failure (fences vs the JSON-only instruction), probe-verified (annex)",
+                "bind only behind a form gate (annex)"),
+    ),
     "statistical": (
-        Binding("openrouter", "tencent/hy4-flash", "vision+text",
-                "dispatchable",
-                "PROVEN — capability map: red-square vision test exact; cheapest vision in the three realms ($0.035/$0.14 LIST)"),
-        Binding("openrouter", "deepseek/deepseek-v4.1-flash-1017",
-                "text/classification", "dispatchable",
-                "PROVEN — capability map: ran live; price-watch verified 2026-11-17 ($0.036/$0.50)",
-                "reasoning-first: set max_tokens generously, it spends on reasoning before content. GAUNTLET-CONTAINED at v0.3 (named-mode service only, its registration class); chain seating rides a gauntlet-exit act — the map's run is the first exit evidence"),
-        Binding("xai", "grok-4.20-0309-non-reasoning", "vision+text",
-                "dispatchable",
-                "PROVEN — capability map: vision exact ($0.00018/call TICKS)"),
-        Binding("google", "gemini-3.1-flash-lite", "text/triage",
-                "dispatchable",
-                "SEEDED by the commission's list; map class LIST-ONLY (lane proven via gemini-3.5-flash)",
-                "THINKING BUDGET REQUIRED (the map's verified warning): Gemini flash models burn thought tokens by default and starve small output budgets — set the budget explicitly; the transport parameter is a named follow-up"),
         Binding("openrouter", "mistralai/voxtral-small-24b-2507",
-                "speech-to-text", "designated",
+                "speech-to-text (primary)", "designated",
                 "PROVEN — capability map: transcript exact ($0.0003037 per 3.4s clip TICKS, ~$0.0054/min)",
                 "audio seam — not served through the text seam"),
-        Binding("google", "gemini-3.5-transcribe", "speech-to-text",
-                "designated",
+        Binding("google", "gemini-3.5-transcribe",
+                "speech-to-text (alternate)", "designated",
                 "PROVEN — capability map: near-exact, dedicated audioTranscription output",
                 "audio seam — not served through the text seam"),
+        Binding("openrouter", "tencent/hy4-flash",
+                "vision tagging (primary)", "dispatchable",
+                "PROVEN — capability map: red-square vision test exact; cheapest vision in the three realms ($0.035/$0.14 LIST)"),
+        Binding("google", "gemini-3.8-flash-lite-tts",
+                "text-to-speech", "designated",
+                "PROVEN — capability map: 33 chars -> 3.36s speech (voice Kore), token counts verified",
+                "the estate's ONLY voice — single-source gap named in the annex"),
+        Binding("google", "gemini-3.5-flash",
+                "vision tagging (alternate)", "dispatchable",
+                "PROVEN — capability map: vision test exact (1,089 image tokens per small PNG, verified)",
+                "gate REPINS 3.5->3.6 at dispatch (canary drift 0093): the served seat is 3.6 until the repin is revisited on canary evidence"),
     ),
     "reasoning": (
-        Binding("google", "gemini-3.6-flash", "text", "dispatchable",
-                "Served seat of the map-proven gemini-3.5-flash line (REPINS 3.5->3.6, canary drift 0093); 3.6 live-proven across gate dispatches",
-                "flash thinking budgets apply (see the statistical flash-lite warning)"),
-        Binding("xai", "grok-4.20-0309-reasoning", "text",
+        Binding("openrouter", "deepseek/deepseek-v4.1-flash-1017",
+                "triage / routing / gate-adjacent (primary)",
                 "dispatchable",
-                "Family proven — capability map: 4.20 non-reasoning vision exact; the reasoning variant is catalog-live and gate-registered"),
+                "PROVEN — capability map: ran live; price-watch verified 2026-11-17 ($0.036/$0.50)",
+                "reasoning-first: max_tokens must cover reasoning before content. GAUNTLET-CONTAINED at this version (named-mode only, its registration class); chain seating rides a gauntlet-exit act — the map's run is the first exit evidence"),
+        Binding("openrouter", "tencent/hy4-flash",
+                "cheap reasoning (secondary)", "dispatchable",
+                "PROVEN — capability map (vision exact; also the statistical vision primary)"),
+        Binding("xai", "grok-4.20-0309-non-reasoning",
+                "workhorse + vision", "dispatchable",
+                "PROVEN — capability map: text + vision exact ($0.00018/call TICKS; LIST $1.25/$2.50)"),
+        Binding("google", "gemini-3.5-flash",
+                "workhorse drafting", "dispatchable",
+                "PROVEN — capability map: text exact",
+                "THINKING CAVEAT (annex, verified): 82-307 thought tokens on trivial prompts — set budgets explicitly or the lane bills reasoning on every call. Gate REPINS 3.5->3.6 at dispatch (drift 0093)"),
     ),
     "probabilistic": (
         Binding("anthropic", "claude-opus-5-5", "text/judgment",
                 "dispatchable",
-                "Unchanged — the standing judgment seat (table v0.1/v0.2 flagship)"),
-    ),
-    "image-gen": (
-        Binding("xai", "grok-imagine-image", "image generation",
-                "designated",
+                "Unchanged — the standing judgment seat (the annex: frontier judgment seats bind under the existing table, unchanged)"),
+        Binding("xai", "grok-imagine-image",
+                "image generation (primary)", "designated",
                 "PROVEN — capability map: image returned, $0.0200/image TICKS exact",
                 "per-image pricing (no token row); xAI images endpoint; b64_json only under ZDR"),
         Binding("google", "gemini-3.1-flash-lite-image",
-                "image generation", "designated",
+                "image generation (alternate)", "designated",
                 "PROVEN — capability map: 390 KB JPEG returned, 1,120 image tokens/image verified",
                 "image-token pricing; not served through the text seam"),
-    ),
-    "tts": (
-        Binding("google", "gemini-3.8-flash-lite-tts",
-                "text-to-speech", "designated",
-                "PROVEN — capability map: 33 chars -> 3.36s speech (voice Kore), token counts verified",
-                "the only TTS lane in the three realms"),
     ),
 }
 
