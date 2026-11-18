@@ -88,14 +88,23 @@ seat binds — gemini-embedding-001, designated, on FinOps' proof
 (a single embedContent call, 3072-dimension vector, < $0.001).
 The annex's named embeddings gap closes. Rides the v0.4.39 patch
 cert packet as its second item.
+
+Table v0.7 (2026-11-18, gate v0.4.41): qr-draft-check RE-BINDS,
+Shape B (his ruling 01:22 CT) — the checker chain AND the
+flagship seat move from claude-opus-5-5 to
+grok-4.20-0309-reasoning, on FinOps' frontier-proof (draft-check
+91.89 = Opus exactly, 0 form fails, ~1/7 the leg cost). The gate
+desk's Shape A read (flagship stays Opus as the appeal court) is
+recorded as dissent in the CHANGELOG; his call stands. Rides the
+patch cert packet as its third item.
 """
 
 from dataclasses import dataclass, field
 
 from . import throttle as throttle_mod
 
-TABLE_VERSION = "v0.6"
-TABLE_HASH = "ef0ce2dffbf856c9c3ba8693c998efe3899e2a0a27e8b9b434fa07e9ea83e649"
+TABLE_VERSION = "v0.7"
+TABLE_HASH = "ae2b665e7872ab71983df67e9efc55ddbe0cda16ad2f8a0b5c08859c49bc8484"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -346,9 +355,9 @@ CLASSES = {
         flagship=("anthropic", "claude-opus-5-5"),
         interim=True),
     "qr-draft-check": ClassSpec(
-        "qr-draft-check", "Anthropic Opus seat (designated checker)",
-        chain=(("anthropic", "claude-opus-5-5"),),
-        flagship=("anthropic", "claude-opus-5-5")),
+        "qr-draft-check", "xAI Grok reasoning seat (designated checker)",
+        chain=(("xai", "grok-4.20-0309-reasoning"),),
+        flagship=("xai", "grok-4.20-0309-reasoning")),
     "qr-commission-ruling": ClassSpec(
         "qr-commission-ruling", "Fork (Geneva + unprimed Opus)",
         chain=(),
