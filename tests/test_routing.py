@@ -33,7 +33,7 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-panel-verdict", "google", "gemini-3.6-flash")
         self.assertTrue(d.allowed)
         self.assertEqual(d.stamp["position"], "chain-0")
-        self.assertEqual(d.stamp["table_version"], "v0.4")
+        self.assertEqual(d.stamp["table_version"], "v0.5")
         self.assertEqual(d.stamp["table_hash"], routing.TABLE_HASH)
 
     def test_spread_seats_admitted_v01(self):
@@ -160,7 +160,7 @@ class ResolveTest(unittest.TestCase):
         s = routing.job_stamp("qr-research")
         self.assertEqual(s["routing_class"], "qr-research")
         self.assertEqual(s["selected"], "google/gemini-3.6-flash")
-        self.assertEqual(s["table_version"], "v0.4")
+        self.assertEqual(s["table_version"], "v0.5")
 
     def test_job_stamp_geneva_direct(self):
         s = routing.job_stamp("qr-career-ops")
@@ -254,7 +254,7 @@ class RunIntegrationTest(unittest.TestCase):
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-live-wire")
         self.assertEqual(rec["routing"]["position"], "chain-0")
-        self.assertEqual(rec["routing"]["table_version"], "v0.4")
+        self.assertEqual(rec["routing"]["table_version"], "v0.5")
 
     def test_draft_check_containment_refuses_commodity_walk(self):
         # v0.4.35 containment: a junior-loop draft check's throttle
@@ -270,7 +270,7 @@ class RunIntegrationTest(unittest.TestCase):
         self.assertEqual(row["status"], "blocked-router:class-mismatch")
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-draft-check")
-        self.assertEqual(rec["routing"]["table_version"], "v0.4")
+        self.assertEqual(rec["routing"]["table_version"], "v0.5")
 
     def test_draft_check_loop_serves_designated_seat(self):
         # The fail-closed draft-check loop class fires the checker
@@ -364,7 +364,7 @@ class FiveLaneTest(unittest.TestCase):
         self.assertEqual(
             routing.resolve_nature("qr-research", "reasoning"),
             "reasoning")
-        self.assertEqual(routing.TABLE_VERSION, "v0.4")
+        self.assertEqual(routing.TABLE_VERSION, "v0.5")
 
     def test_bindings_shape(self):
         self.assertEqual(routing.bindings_for("deterministic"), ())
@@ -376,7 +376,8 @@ class FiveLaneTest(unittest.TestCase):
                                 "gemini-3.5-transcribe",
                                 "tencent/hy4-flash",
                                 "gemini-3.8-flash-lite-tts",
-                                "gemini-3.5-flash"})
+                                "gemini-3.5-flash",
+                                "gemini-3.1-flash-lite"})
         reas = {b.model for b in routing.bindings_for("reasoning")}
         self.assertEqual(reas, {"deepseek/deepseek-v4.1-flash-1017",
                                 "tencent/hy4-flash",
@@ -398,16 +399,22 @@ class FiveLaneTest(unittest.TestCase):
                 pricing.price_info(b.provider, b.model)
 
     def test_scenery_stays_unbound(self):
-        # The annex classes both scenery: flash-lite text (cataloged
-        # only) and the Grok reasoning variant (only non-reasoning
-        # was smoked). Neither binds under any key.
+        # The annex classes the Grok reasoning variant scenery (only
+        # non-reasoning was smoked); video binds nothing.
         bound = {b.model for key in
                  ("deterministic", "algorithmic", "statistical",
                   "reasoning", "probabilistic")
                  for b in routing.bindings_for(key)}
-        self.assertNotIn("gemini-3.1-flash-lite", bound)
         self.assertNotIn("grok-4.20-0309-reasoning", bound)
         self.assertNotIn("grok-imagine-video", bound)
+
+    def test_flash_lite_rebound_as_seeded_exception(self):
+        # v0.5: re-bound by his direct word over the annex's scenery
+        # class — the class rides the binding's face.
+        row = next(b for b in routing.bindings_for("statistical")
+                   if b.model == "gemini-3.1-flash-lite")
+        self.assertIn("SEEDED EXCEPTION", row.proof)
+        self.assertIn("THINKING BUDGET", row.note)
 
 
 class PrimingWrapTest(unittest.TestCase):

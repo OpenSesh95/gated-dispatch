@@ -76,12 +76,18 @@ RECONCILED to FinOps' deployment annex (the map's MODEL→LANE
 assignment form, filed the same night) — see the binding-table
 comment for the deltas. v0.3 stood on dev only and was never
 certified; v0.4 supersedes it before any cert packet.
+
+Table v0.5 (2026-11-18, gate v0.4.38): ONE amendment by his direct
+word (00:50 CT) — gemini-3.1-flash-lite is RE-BOUND under
+statistical as a seeded exception over the annex's scenery class,
+its class and the thinking-budget warning on the binding's face.
+Rides the same cert packet as v0.4.
 """
 
 from dataclasses import dataclass, field
 
-TABLE_VERSION = "v0.4"
-TABLE_HASH = "47f6862621ba7b73a567aaea1695fb66073f4dd28ddfeea87cd0a6b0ee7b7870"
+TABLE_VERSION = "v0.5"
+TABLE_HASH = "7cef48230418171eeb4e3afd3f4c93ad63c7b94a9911687bcab6133b4dc0e051"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -219,6 +225,10 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
                 "text-to-speech", "designated",
                 "PROVEN — capability map: 33 chars -> 3.36s speech (voice Kore), token counts verified",
                 "the estate's ONLY voice — single-source gap named in the annex"),
+        Binding("google", "gemini-3.1-flash-lite", "text/triage",
+                "dispatchable",
+                "SEEDED EXCEPTION — re-bound by his direct word 2026-11-18 00:50 CT over the annex's scenery class (cataloged only; the lane is proven via gemini-3.5-flash)",
+                "THINKING BUDGET REQUIRED (the map's verified warning): Gemini flash models burn thought tokens by default and starve small output budgets — set the budget explicitly; the transport parameter is a named follow-up"),
         Binding("google", "gemini-3.5-flash",
                 "vision tagging (alternate)", "dispatchable",
                 "PROVEN — capability map: vision test exact (1,089 image tokens per small PNG, verified)",
