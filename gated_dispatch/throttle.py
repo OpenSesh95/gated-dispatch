@@ -133,6 +133,7 @@ MODELS: dict[str, ModelRule] = {
     'google/gemini-omni-1.1-flash': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'ricursiveai/ripple-65b-preview': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'tencent/hy4': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
+    'tencent/hy4-flash': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'motif-technologies/motif-3': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'z-ai/glm-5.3-flashx-legal': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
     'particle-ai/particle-1': ModelRule("openrouter", concurrency=1, min_interval_s=0.5, max_retries=1),
@@ -671,6 +672,9 @@ CLASS_RANK = {
     "ruling": 0,
     "commission": 1,
     "panel": 2,
+    # v0.4.35: the draft-check loop gates outward sends — a desk
+    # waits on the verdict — so it ranks with the panel class.
+    "draft-check": 2,
     "junior": 3,
     "defect": 4,
     "lower-order": 5,
@@ -697,6 +701,10 @@ LOOP_CLASSES: dict[str, dict] = {
     "panel": {"behavior": "fail-closed", "chain": []},
     "commission": {"behavior": "fail-closed", "chain": []},
     "ruling": {"behavior": "fail-closed", "chain": []},
+    # Designated-seat service (v0.4.35, AR-20261117-06): the
+    # outward-draft compliance check fires its checker seat or
+    # stops — substitution would be a different gate.
+    "draft-check": {"behavior": "fail-closed", "chain": []},
     "junior": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
     "defect": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
     "lower-order": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
