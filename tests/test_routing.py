@@ -353,6 +353,22 @@ class FiveLaneTest(unittest.TestCase):
     """Table v0.3 (his commission 2026-11-17 23:22 CT): five natures,
     the model binding table, and the priming wrap."""
 
+    def test_repinned_seat_admitted_at_its_position(self):
+        # The annex-bound gemini-3.5-flash re-pins to 3.6-flash at
+        # dispatch (throttle.REPINS); admission judges the effective
+        # seat (found by the 2026-11-18 E2E sweep).
+        d = routing.resolve("qr-research", "google",
+                            "gemini-3.5-flash")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-0")
+        self.assertEqual(d.stamp["repinned_from"], "gemini-3.5-flash")
+
+    def test_unrepinned_nonseat_still_refuses(self):
+        d = routing.resolve("qr-research", "google",
+                            "gemini-3.1-flash-lite")
+        self.assertFalse(d.allowed)
+        self.assertEqual(d.cause, "class-mismatch")
+
     def test_five_natures(self):
         self.assertEqual(
             routing.NATURES,

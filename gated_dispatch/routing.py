@@ -86,6 +86,8 @@ Rides the same cert packet as v0.4.
 
 from dataclasses import dataclass, field
 
+from . import throttle as throttle_mod
+
 TABLE_VERSION = "v0.5"
 TABLE_HASH = "7cef48230418171eeb4e3afd3f4c93ad63c7b94a9911687bcab6133b4dc0e051"
 
@@ -526,7 +528,17 @@ def resolve(class_id: str, provider: str, model: str,
             f"class {spec.class_id} is Geneva-direct; frontier "
             f"request {provider}/{model} refuses")
 
-    pair = (provider, model)
+    # Seat re-pins (throttle.REPINS — canary-drift re-pins, C-023
+    # R-1): dispatch fires the EFFECTIVE seat, so admission judges
+    # the effective seat. A request naming the drifted id of a class
+    # seat is admitted at the seat's position, with the re-pin named
+    # on the stamp. (Found by the 2026-11-18 E2E sweep: the annex-
+    # bound gemini-3.5-flash refused every routed class because the
+    # chains carry its re-pin, gemini-3.6-flash.)
+    effective = throttle_mod.REPINS.get(model, model)
+    if effective != model:
+        stamp["repinned_from"] = model
+    pair = (provider, effective)
     if pair in spec.chain:
         stamp["position"] = f"chain-{spec.chain.index(pair)}"
         return Decision(True, stamp)
