@@ -168,6 +168,7 @@ def run(
     routing_dominant: str | None = None,
     nature: str | None = None,
     assembly_pattern: str | None = None,
+    masking_attested: bool = False,
     _time_fn=time.time,
     _sleep_fn=time.sleep,
     _monotonic_fn=time.monotonic,
@@ -371,6 +372,43 @@ def run(
                 **base,
             ))
 
+    # OpenAI-seat masking guard (his condition 2026-11-19, fail-closed;
+    # Governance docket §128): the owner is enrolled in OpenAI's
+    # free-tokens data-sharing program, so anything sent to the
+    # OpenAI seat (openrouter openai/* models) is masked first and
+    # Leela-private material never goes at all. The masking engine is
+    # decided-unbuilt — the briefing desk masks manually and attests
+    # with masking_attested=True; without the attestation the gate
+    # refuses (a) any judgment-context dispatch to the seat (judgment
+    # routing class, or a panel/commission/ruling loop class) and
+    # (b) any dispatch whose manifest marks the material sensitive.
+    # Compartmented material never reaches an external lane at all
+    # (TEST-0, above). A brief that cannot be masked without gutting
+    # it is the briefing desk's call — the seat sits the panel out;
+    # the gate's part is that unattested never fires.
+    if (provider == "openrouter" and model.startswith("openai/")
+            and not masking_attested):
+        _judgment_ctx = (
+            routing_class in routing_mod.JUDGMENT_CLASSES
+            or loop_class in ("panel", "commission", "ruling"))
+        _sensitive = (
+            isinstance(input_manifest, dict)
+            and (input_manifest.get("data") or {}).get(
+                "sensitivity") == "sensitive")
+        if _judgment_ctx or _sensitive:
+            snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+            stall["cause"] = "masking"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status="blocked-masking:openai-seat", snapshot=snap,
+                checks={"masking": (
+                    "the OpenAI seat requires a masked brief, attested "
+                    "by the briefing desk (masking_attested=True); "
+                    "unattested judgment/sensitive dispatch refuses "
+                    "(his condition 2026-11-19)")},
+                **base,
+            ))
+
     # Promotion path guard (cluster enablement, ratified 2026-11-13):
     # a run claiming a swarm pattern must name a REGISTERED pattern whose
     # eval-gate evidence beat its class baseline, and the class must be a
@@ -491,6 +529,8 @@ def run(
             _admitted = {m for _, m in _spec.chain}
             if _spec.flagship:
                 _admitted.add(_spec.flagship[1])
+            for _vp, _vm in _spec.flagship_voices:
+                _admitted.add(_vm)
             if fire_model not in _admitted \
                     and fire_provider not in routing_mod.LOCAL_PROVIDERS:
                 snap = envelopes_mod.preflight(ledger_path, envelope, lane)
