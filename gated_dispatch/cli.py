@@ -169,6 +169,7 @@ def run(
     nature: str | None = None,
     assembly_pattern: str | None = None,
     masking_attested: bool = False,
+    max_tokens: int | None = None,
     _time_fn=time.time,
     _sleep_fn=time.sleep,
     _monotonic_fn=time.monotonic,
@@ -717,7 +718,7 @@ def run(
                         return model_id, None, att, RuntimeError("no slot")
                     t0 = _monotonic_fn()
                     try:
-                        comp = lanes.dispatch(prompt, prov, model_id, transport=transport)
+                        comp = lanes.dispatch(prompt, prov, model_id, transport=transport, max_tokens=max_tokens)
                         att["latency"] = _monotonic_fn() - t0
                         att["ts_outcome"] = _iso(_time_fn())
                         att["tokens_in"] = comp.tokens_in
@@ -857,7 +858,8 @@ def run(
                 started = _monotonic_fn()
                 try:
                     completion = lanes.dispatch(
-                        prompt, fire_provider, fire_model, transport=transport
+                        prompt, fire_provider, fire_model, transport=transport,
+                        max_tokens=max_tokens
                     )
                     att["latency"] = _monotonic_fn() - started
                     att["ts_outcome"] = _iso(_time_fn())
