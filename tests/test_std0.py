@@ -336,7 +336,12 @@ class DispatchLogTest(unittest.TestCase):
         for i, lat in enumerate([1.0, 2.0, 3.0, 4.0, 10.0]):
             self._rec(path, f"GD-T-{i}", lat, run_outcome="approved",
                       q=f"unique question number {i} about topic {i}")
-        out = dispatch_log.summarize(path)
+        # The fixtures are stamped 2026-11-12; anchor `now` to their
+        # day so the rolling 7-day window holds them deterministically
+        # (the wall-clock window aged them out on 2026-11-19).
+        from datetime import datetime, timezone
+        out = dispatch_log.summarize(
+            path, now=datetime(2026, 11, 12, 2, 0, tzinfo=timezone.utc))
         self.assertEqual(out["lower-order"]["attempts"], 5)
         self.assertEqual(out["lower-order"]["p50"], 3.0)
         self.assertEqual(out["lower-order"]["p95"], 10.0)
