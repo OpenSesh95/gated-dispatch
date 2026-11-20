@@ -380,17 +380,22 @@ def run(
     # decided-unbuilt — the briefing desk masks manually and attests
     # with masking_attested=True; without the attestation the gate
     # refuses (a) any judgment-context dispatch to the seat (judgment
-    # routing class, or a panel/commission/ruling loop class) and
-    # (b) any dispatch whose manifest marks the material sensitive.
-    # Compartmented material never reaches an external lane at all
-    # (TEST-0, above). A brief that cannot be masked without gutting
-    # it is the briefing desk's call — the seat sits the panel out;
-    # the gate's part is that unattested never fires.
+    # routing class, or a panel/commission/ruling loop class),
+    # (a2) ANY routed dispatch to the seat (table v0.10, the flagship
+    # pool extension: routed work is real work, and real work's
+    # briefs are masked — unrouted named/measurement work keeps the
+    # (a)/(b) shape), and (b) any dispatch whose manifest marks the
+    # material sensitive. Compartmented material never reaches an
+    # external lane at all (TEST-0, above). A brief that cannot be
+    # masked without gutting it is the briefing desk's call — the
+    # seat sits the round out; the gate's part is that unattested
+    # never fires.
     if (provider == "openrouter" and model.startswith("openai/")
             and not masking_attested):
         _judgment_ctx = (
             routing_class in routing_mod.JUDGMENT_CLASSES
-            or loop_class in ("panel", "commission", "ruling"))
+            or loop_class in ("panel", "commission", "ruling")
+            or routing_class is not None)
         _sensitive = (
             isinstance(input_manifest, dict)
             and (input_manifest.get("data") or {}).get(

@@ -33,7 +33,7 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-panel-verdict", "google", "gemini-3.6-flash")
         self.assertTrue(d.allowed)
         self.assertEqual(d.stamp["position"], "chain-0")
-        self.assertEqual(d.stamp["table_version"], "v0.9")
+        self.assertEqual(d.stamp["table_version"], "v0.10")
         self.assertEqual(d.stamp["table_hash"], routing.TABLE_HASH)
 
     def test_spread_seats_admitted_v01(self):
@@ -167,7 +167,7 @@ class ResolveTest(unittest.TestCase):
         s = routing.job_stamp("qr-research")
         self.assertEqual(s["routing_class"], "qr-research")
         self.assertEqual(s["selected"], "google/gemini-3.6-flash")
-        self.assertEqual(s["table_version"], "v0.9")
+        self.assertEqual(s["table_version"], "v0.10")
 
     def test_job_stamp_geneva_direct(self):
         s = routing.job_stamp("qr-career-ops")
@@ -261,7 +261,7 @@ class RunIntegrationTest(unittest.TestCase):
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-live-wire")
         self.assertEqual(rec["routing"]["position"], "chain-0")
-        self.assertEqual(rec["routing"]["table_version"], "v0.9")
+        self.assertEqual(rec["routing"]["table_version"], "v0.10")
 
     def test_draft_check_containment_refuses_commodity_walk(self):
         # v0.4.35 containment: a junior-loop draft check's throttle
@@ -279,7 +279,7 @@ class RunIntegrationTest(unittest.TestCase):
         self.assertEqual(row["status"], "blocked-router:class-mismatch")
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-draft-check")
-        self.assertEqual(rec["routing"]["table_version"], "v0.9")
+        self.assertEqual(rec["routing"]["table_version"], "v0.10")
 
     def test_draft_check_loop_serves_designated_seat(self):
         # The fail-closed draft-check loop class fires the checker
@@ -392,7 +392,7 @@ class FiveLaneTest(unittest.TestCase):
         self.assertEqual(
             routing.resolve_nature("qr-research", "reasoning"),
             "reasoning")
-        self.assertEqual(routing.TABLE_VERSION, "v0.9")
+        self.assertEqual(routing.TABLE_VERSION, "v0.10")
 
     def test_bindings_shape(self):
         self.assertEqual(routing.bindings_for("deterministic"), ())

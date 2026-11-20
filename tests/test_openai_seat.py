@@ -78,6 +78,20 @@ class FlagshipVoiceAdmissionTest(unittest.TestCase):
         reas = {b.model for b in routing.bindings_for("reasoning")}
         self.assertIn("openai/o3", reas)
 
+    def test_flagship_pool_extension(self):
+        # v0.10 (§128a): the voice is a standing pool member wherever
+        # a flagship voice sits — and stays OUT of the classes his
+        # constraints exclude.
+        for cls in ("qr-live-wire", "qr-research", "qr-content-voice",
+                    "qr-coding-burst"):
+            d = routing.resolve(cls, *GPT)
+            self.assertTrue(d.allowed, cls)
+            self.assertEqual(d.stamp["position"], "flagship-voice", cls)
+        for cls in ("qr-canon-drafting", "qr-spiritual-study",
+                    "qr-draft-check"):
+            d = routing.resolve(cls, *GPT)
+            self.assertFalse(d.allowed, cls)
+
 
 class MaskingGuardTest(unittest.TestCase):
     def setUp(self):
@@ -117,6 +131,20 @@ class MaskingGuardTest(unittest.TestCase):
     def test_measurement_shape_unaffected(self):
         # The bake-off shape: named, lower-order, no manifest — fires.
         t = self._run(loop_class="lower-order")
+        self.assertEqual(t["status"], "approved")
+
+    def test_routed_dispatch_unattested_refuses(self):
+        # v0.10 (a2): any routed dispatch to an OpenAI seat attests.
+        t = self._run(loop_class="lower-order",
+                      routing_class="qr-research",
+                      input_manifest=_manifest("internal"))
+        self.assertEqual(t["status"], "blocked-masking:openai-seat")
+
+    def test_routed_dispatch_attested_fires(self):
+        t = self._run(loop_class="lower-order",
+                      routing_class="qr-research",
+                      input_manifest=_manifest("internal"),
+                      masking_attested=True)
         self.assertEqual(t["status"], "approved")
 
     def test_other_seats_unaffected(self):
