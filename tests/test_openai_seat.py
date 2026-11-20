@@ -59,6 +59,25 @@ class FlagshipVoiceAdmissionTest(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0].tier, "dispatchable")
 
+    def test_codex_seats_in_coding_burst_chain(self):
+        # v0.9 full integration: the codex line seats in the coding
+        # class's chain, ahead of the sonnet seat it rebalances.
+        d = routing.resolve("qr-coding-burst", "openrouter",
+                            "openai/gpt-5.3-codex")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "chain-2")
+        spec = routing.CLASSES["qr-coding-burst"]
+        models = [m for _, m in spec.chain]
+        self.assertLess(models.index("openai/gpt-5.3-codex"),
+                        models.index("claude-sonnet-5-5"))
+
+    def test_openai_lines_bound(self):
+        stat = {b.model for b in routing.bindings_for("statistical")}
+        self.assertIn("openai/gpt-5.4-nano", stat)
+        self.assertIn("openai/gpt-5.4-mini", stat)
+        reas = {b.model for b in routing.bindings_for("reasoning")}
+        self.assertIn("openai/o3", reas)
+
 
 class MaskingGuardTest(unittest.TestCase):
     def setUp(self):

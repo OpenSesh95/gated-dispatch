@@ -103,8 +103,8 @@ from dataclasses import dataclass, field
 
 from . import throttle as throttle_mod
 
-TABLE_VERSION = "v0.8"
-TABLE_HASH = "37625b47c0a56ccc58c8bc7ef19ebf33a53ff901396cd1f8fa7016a5f027dbf4"
+TABLE_VERSION = "v0.9"
+TABLE_HASH = "4709d9b15020fe78e8e45fc3ee515f1506f95aafda986f47293659753b0ecd50"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -254,6 +254,14 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
                 "vision tagging (alternate)", "dispatchable",
                 "PROVEN — capability map: vision test exact (1,089 image tokens per small PNG, verified)",
                 "gate REPINS 3.5->3.6 at dispatch (canary drift 0093): the served seat is 3.6 until the repin is revisited on canary evidence"),
+        Binding("openrouter", "openai/gpt-5.4-nano",
+                "bulk text / classification", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0003): JSON form exact at the helper cap; accuracy mixed on borderline items (3/5, one clear miss)",
+                "bind for form-critical bulk legs on degradable classes, not for judgment. MASKING: named/attested dispatch only. $0.20/$1.25 LIST"),
+        Binding("openrouter", "openai/gpt-5.4-mini",
+                "bulk text / summary", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0004): exact output form, summary + status correct",
+                "MASKING: named/attested dispatch only. $0.75/$4.50 LIST"),
     ),
     "reasoning": (
         Binding("openrouter", "deepseek/deepseek-v4.1-flash-1017",
@@ -271,6 +279,10 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
                 "workhorse drafting", "dispatchable",
                 "PROVEN — capability map: text exact",
                 "THINKING CAVEAT (annex, verified): 82-307 thought tokens on trivial prompts — set budgets explicitly or the lane bills reasoning on every call. Gate REPINS 3.5->3.6 at dispatch (drift 0093)"),
+        Binding("openrouter", "openai/o3",
+                "frontier reasoning", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0002): the existential-import catch stated correctly; also on his lane smoke the same night",
+                "MASKING: named/attested dispatch only (his data-sharing condition); $2.00/$8.00 LIST"),
     ),
     "probabilistic": (
         Binding("anthropic", "claude-opus-5-5", "text/judgment",
@@ -280,6 +292,18 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
                 "text/judgment (flagship voice)", "dispatchable",
                 "PROVEN — BYOK smoke + bake-off 2026-11-19: 27 dispatches through the gate, $0 ticketed (BYOK carried them)",
                 "MASKING CONDITION (his order 2026-11-19, fail-closed): briefs are masked before this seat is dispatched; Leela-private material never goes; an unattested judgment dispatch refuses at the gate (blocked-masking:openai-seat); a brief that cannot be masked without gutting it means the seat sits the panel out. BATCH BAR: the seat rides OpenRouter (30-day batch retention) — its legs never batch under the provenance bar"),
+        Binding("openrouter", "openai/gpt-5.3-codex",
+                "code generation (codex line)", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0001): clean typed code + docstring, form exact",
+                "seats in qr-coding-burst's chain at v0.9, ahead of claude-sonnet-5-5. Burst briefs are desk-prepared (masked per the standing discipline); sensitive-marked bursts refuse unattested"),
+        Binding("openrouter", "openai/gpt-5-image",
+                "image generation", "designated",
+                "PROVEN — his lane smoke 2026-11-19 (image PASS, BYOK)",
+                "image seam — not served through the text seam"),
+        Binding("openrouter", "openai/gpt-audio",
+                "audio-in (voice input)", "designated",
+                "PROVEN — his lane smoke 2026-11-19 (voice-in PASS, BYOK)",
+                "audio seam — not served through the text seam; voice-out is not in the lane's catalog"),
         Binding("xai", "grok-imagine-image",
                 "image generation (primary)", "designated",
                 "PROVEN — capability map: image returned, $0.0200/image TICKS exact",
@@ -360,6 +384,7 @@ CLASSES = {
         "qr-coding-burst", "Open-weight first - INTERIM (Courier gap)",
         chain=(("openrouter", "north-mini-code"),
                ("google", "gemini-3.6-flash"),
+               ("openrouter", "openai/gpt-5.3-codex"),
                ("anthropic", "claude-sonnet-5-5")),
         flagship=("anthropic", "claude-opus-5-5"),
         interim=True),
