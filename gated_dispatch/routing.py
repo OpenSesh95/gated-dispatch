@@ -103,8 +103,8 @@ from dataclasses import dataclass, field
 
 from . import throttle as throttle_mod
 
-TABLE_VERSION = "v0.7"
-TABLE_HASH = "ae2b665e7872ab71983df67e9efc55ddbe0cda16ad2f8a0b5c08859c49bc8484"
+TABLE_VERSION = "v0.8"
+TABLE_HASH = "37625b47c0a56ccc58c8bc7ef19ebf33a53ff901396cd1f8fa7016a5f027dbf4"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -276,6 +276,10 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
         Binding("anthropic", "claude-opus-5-5", "text/judgment",
                 "dispatchable",
                 "Unchanged — the standing judgment seat (the annex: frontier judgment seats bind under the existing table, unchanged)"),
+        Binding("openrouter", "openai/gpt-5.5",
+                "text/judgment (flagship voice)", "dispatchable",
+                "PROVEN — BYOK smoke + bake-off 2026-11-19: 27 dispatches through the gate, $0 ticketed (BYOK carried them)",
+                "MASKING CONDITION (his order 2026-11-19, fail-closed): briefs are masked before this seat is dispatched; Leela-private material never goes; an unattested judgment dispatch refuses at the gate (blocked-masking:openai-seat); a brief that cannot be masked without gutting it means the seat sits the panel out. BATCH BAR: the seat rides OpenRouter (30-day batch retention) — its legs never batch under the provenance bar"),
         Binding("xai", "grok-imagine-image",
                 "image generation (primary)", "designated",
                 "PROVEN — capability map: image returned, $0.0200/image TICKS exact",
@@ -310,6 +314,11 @@ class ClassSpec:
     lane: str
     chain: tuple = ()          # ((provider, model), ...) cheapest first
     flagship: tuple | None = None
+    # Additional admitted flagship VOICES (v0.8): a convener may name
+    # one explicitly and it dispatches as a voice alongside the
+    # standing seats. The default flagship selection never changes —
+    # a voice fires only when named.
+    flagship_voices: tuple = ()
     geneva_direct: bool = False
     interim: bool = False
 
@@ -361,14 +370,16 @@ CLASSES = {
     "qr-commission-ruling": ClassSpec(
         "qr-commission-ruling", "Fork (Geneva + unprimed Opus)",
         chain=(),
-        flagship=("anthropic", "claude-opus-5-5")),
+        flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-panel-verdict": ClassSpec(
         "qr-panel-verdict", "Panel via STD-0 gated dispatch",
         chain=(("google", "gemini-3.6-flash"),
                ("openrouter", "nemotron-3-ultra"),
                ("xai", "grok-4.20-0309-non-reasoning"),
                ("anthropic", "claude-haiku-5-5")),
-        flagship=("anthropic", "claude-opus-5-5")),
+        flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-combination": ClassSpec(
         "qr-combination", "COMBINATION RULE (dominant class lane)"),
 }
@@ -564,9 +575,14 @@ def resolve(class_id: str, provider: str, model: str,
     if spec.flagship is not None and pair == spec.flagship:
         stamp["position"] = "flagship"
         return Decision(True, stamp)
+    if pair in spec.flagship_voices:
+        stamp["position"] = "flagship-voice"
+        return Decision(True, stamp)
     admitted = [f"{p}/{m}" for p, m in spec.chain]
     if spec.flagship is not None:
         admitted.append(f"{spec.flagship[0]}/{spec.flagship[1]} (flagship)")
+    for p, m in spec.flagship_voices:
+        admitted.append(f"{p}/{m} (flagship voice)")
     return Decision(
         False, stamp, "class-mismatch",
         f"class {spec.class_id} admits [{'; '.join(admitted)}]; "
