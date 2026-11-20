@@ -675,6 +675,10 @@ CLASS_RANK = {
     # v0.4.35: the draft-check loop gates outward sends — a desk
     # waits on the verdict — so it ranks with the panel class.
     "draft-check": 2,
+    # v0.4.42: the router brain classifies at intake, ahead of the
+    # work it routes — mid-pack, ahead of bulk classes, behind the
+    # judgment classes whose work it must never delay.
+    "router-brain": 3,
     "junior": 3,
     "defect": 4,
     "lower-order": 5,
@@ -705,6 +709,11 @@ LOOP_CLASSES: dict[str, dict] = {
     # outward-draft compliance check fires its checker seat or
     # stops — substitution would be a different gate.
     "draft-check": {"behavior": "fail-closed", "chain": []},
+    # Designated-seat service (v0.4.42): the router brain is its one
+    # proven seat — substitution would seat a different classifier
+    # than the probe evidence covers. Its failure handling lives in
+    # brain.classify (fall back to the table), not in a chain.
+    "router-brain": {"behavior": "fail-closed", "chain": []},
     "junior": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
     "defect": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
     "lower-order": {"behavior": "degrade", "chain": COMMODITY_CHAIN},
