@@ -103,8 +103,8 @@ from dataclasses import dataclass, field
 
 from . import throttle as throttle_mod
 
-TABLE_VERSION = "v0.9"
-TABLE_HASH = "4709d9b15020fe78e8e45fc3ee515f1506f95aafda986f47293659753b0ecd50"
+TABLE_VERSION = "v0.10"
+TABLE_HASH = "3ae15b4707e88c24140bbf6a303304fd7c4c4d0ba16c3dc86ce5d4c038f1ea89"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -357,12 +357,14 @@ CLASSES = {
     "qr-live-wire": ClassSpec(
         "qr-live-wire", "Grok wire",
         chain=(("xai", "grok-4.20-0309-non-reasoning"),),
-        flagship=("xai", "grok-4.20-multi-agent-0309")),
+        flagship=("xai", "grok-4.20-multi-agent-0309"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-research": ClassSpec(
         "qr-research", "Gemini library + OpenRouter seat + Research Team",
         chain=(("google", "gemini-3.6-flash"),
                ("openrouter", "nemotron-3-ultra")),
-        flagship=("google", "gemini-4-argon")),
+        flagship=("google", "gemini-4-argon"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-spiritual-study": ClassSpec(
         "qr-spiritual-study", "Library lane, gold source first",
         chain=(("google", "gemini-3.6-flash"),),
@@ -379,7 +381,8 @@ CLASSES = {
                ("xai", "grok-4.20-0309-non-reasoning"),
                ("anthropic", "claude-haiku-5-5"),
                ("anthropic", "claude-sonnet-5-5")),
-        flagship=("anthropic", "claude-opus-5-5")),
+        flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-coding-burst": ClassSpec(
         "qr-coding-burst", "Open-weight first - INTERIM (Courier gap)",
         chain=(("openrouter", "north-mini-code"),
@@ -387,6 +390,7 @@ CLASSES = {
                ("openrouter", "openai/gpt-5.3-codex"),
                ("anthropic", "claude-sonnet-5-5")),
         flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),),
         interim=True),
     "qr-draft-check": ClassSpec(
         "qr-draft-check", "xAI Grok reasoning seat (designated checker)",
