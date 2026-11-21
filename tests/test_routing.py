@@ -33,7 +33,7 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-panel-verdict", "google", "gemini-3.6-flash")
         self.assertTrue(d.allowed)
         self.assertEqual(d.stamp["position"], "chain-0")
-        self.assertEqual(d.stamp["table_version"], "v0.11")
+        self.assertEqual(d.stamp["table_version"], "v0.12")
         self.assertEqual(d.stamp["table_hash"], routing.TABLE_HASH)
 
     def test_spread_seats_admitted_v01(self):
@@ -169,7 +169,7 @@ class ResolveTest(unittest.TestCase):
         s = routing.job_stamp("qr-research")
         self.assertEqual(s["routing_class"], "qr-research")
         self.assertEqual(s["selected"], "google/gemini-3.6-flash")
-        self.assertEqual(s["table_version"], "v0.11")
+        self.assertEqual(s["table_version"], "v0.12")
 
     def test_job_stamp_geneva_direct(self):
         s = routing.job_stamp("qr-career-ops")
@@ -263,7 +263,7 @@ class RunIntegrationTest(unittest.TestCase):
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-live-wire")
         self.assertEqual(rec["routing"]["position"], "chain-0")
-        self.assertEqual(rec["routing"]["table_version"], "v0.11")
+        self.assertEqual(rec["routing"]["table_version"], "v0.12")
 
     def test_draft_check_containment_refuses_commodity_walk(self):
         # v0.4.35 containment: a junior-loop draft check's throttle
@@ -281,7 +281,7 @@ class RunIntegrationTest(unittest.TestCase):
         self.assertEqual(row["status"], "blocked-router:class-mismatch")
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-draft-check")
-        self.assertEqual(rec["routing"]["table_version"], "v0.11")
+        self.assertEqual(rec["routing"]["table_version"], "v0.12")
 
     def test_draft_check_loop_serves_designated_seat(self):
         # The fail-closed draft-check loop class fires the checker
@@ -307,6 +307,59 @@ class RunIntegrationTest(unittest.TestCase):
                          "grok-4.20-0309-reasoning")
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-draft-check")
+
+    def test_canon_qa_loop_serves_designated_checker(self):
+        # Table v0.12 (his ruling 2026-11-21): canon QA is a
+        # designated-checker sub-binding under qr-canon-drafting —
+        # the fail-closed canon-qa loop fires the checker seat as
+        # itself and the verdict-shaped return approves.
+        def xai_raw(text="PASS"):
+            return {"model": "grok-4.20-0309-reasoning",
+                    "choices": [{"message": {"content": text},
+                                 "finish_reason": "stop"}],
+                    "usage": {"prompt_tokens": 100,
+                              "completion_tokens": 10}}
+        row = cli.run(
+            "QA this canon draft", "grok-4.20-0309-reasoning",
+            ledger_path=self.ledger, provider="xai",
+            envelope="frontier", required_terms=("PASS",),
+            auto_approve=True, loop_class="canon-qa",
+            routing_class="qr-canon-drafting",
+            prompt_stamp=self.stamp,
+            transport=lambda m, p: xai_raw(),
+        )
+        self.assertEqual(row["status"], "approved")
+        rec = self._final_dispatch_record()
+        self.assertEqual(rec["routing"]["class"], "qr-canon-drafting")
+        self.assertEqual(rec["routing"]["position"], "designated-checker")
+        self.assertEqual(rec["routing"]["table_version"], "v0.12")
+
+    def test_canon_qa_checker_seat_requires_the_loop(self):
+        # The checker seat under any other loop class refuses: the
+        # sub-binding's discipline is the loop, not just the seat.
+        row = cli.run(
+            "QA this canon draft", "grok-4.20-0309-reasoning",
+            ledger_path=self.ledger, provider="xai",
+            envelope="frontier",
+            auto_approve=True, loop_class="commission",
+            routing_class="qr-canon-drafting",
+            transport=boom_transport,
+        )
+        self.assertEqual(row["status"],
+                         "blocked-router:checker-loop-required")
+
+    def test_canon_qa_loop_refuses_non_checker_seat(self):
+        # The canon-qa loop serves ONLY the designated checker: the
+        # class's own chain head refuses under it.
+        row = cli.run(
+            "QA this canon draft", "gemini-3.6-flash",
+            ledger_path=self.ledger, provider="google",
+            envelope="frontier",
+            auto_approve=True, loop_class="canon-qa",
+            routing_class="qr-canon-drafting",
+            transport=boom_transport,
+        )
+        self.assertEqual(row["status"], "blocked-router:canon-qa-seat")
 
     def test_routed_mismatch_blocked_before_dispatch(self):
         row = cli.run(
@@ -394,7 +447,7 @@ class FiveLaneTest(unittest.TestCase):
         self.assertEqual(
             routing.resolve_nature("qr-research", "reasoning"),
             "reasoning")
-        self.assertEqual(routing.TABLE_VERSION, "v0.11")
+        self.assertEqual(routing.TABLE_VERSION, "v0.12")
 
     def test_bindings_shape(self):
         self.assertEqual(routing.bindings_for("deterministic"), ())

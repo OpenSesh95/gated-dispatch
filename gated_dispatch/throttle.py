@@ -681,6 +681,9 @@ CLASS_RANK = {
     # v0.4.35: the draft-check loop gates outward sends — a desk
     # waits on the verdict — so it ranks with the panel class.
     "draft-check": 2,
+    # v0.4.49: the canon-QA loop gates canon publication the way
+    # draft-check gates outward sends — same rank.
+    "canon-qa": 2,
     # v0.4.42: the router brain classifies at intake, ahead of the
     # work it routes — mid-pack, ahead of bulk classes, behind the
     # judgment classes whose work it must never delay.
@@ -715,6 +718,10 @@ LOOP_CLASSES: dict[str, dict] = {
     # outward-draft compliance check fires its checker seat or
     # stops — substitution would be a different gate.
     "draft-check": {"behavior": "fail-closed", "chain": []},
+    # Designated-seat service (v0.4.49; his ruling 2026-11-21): the
+    # canon-QA check fires the class's designated checker seat or
+    # stops — substitution would be a different checker.
+    "canon-qa": {"behavior": "fail-closed", "chain": []},
     # Designated-seat service (v0.4.42): the router brain is its one
     # proven seat — substitution would seat a different classifier
     # than the probe evidence covers. Its failure handling lives in
