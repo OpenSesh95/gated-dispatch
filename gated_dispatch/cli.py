@@ -168,6 +168,8 @@ def run(
     routing_dominant: str | None = None,
     nature: str | None = None,
     assembly_pattern: str | None = None,
+    masking_attested: bool = False,
+    max_tokens: int | None = None,
     _time_fn=time.time,
     _sleep_fn=time.sleep,
     _monotonic_fn=time.monotonic,
@@ -371,6 +373,48 @@ def run(
                 **base,
             ))
 
+    # OpenAI-seat masking guard (his condition 2026-11-19, fail-closed;
+    # Governance docket §128): the owner is enrolled in OpenAI's
+    # free-tokens data-sharing program, so anything sent to the
+    # OpenAI seat (openrouter openai/* models) is masked first and
+    # Leela-private material never goes at all. The masking engine is
+    # decided-unbuilt — the briefing desk masks manually and attests
+    # with masking_attested=True; without the attestation the gate
+    # refuses (a) any judgment-context dispatch to the seat (judgment
+    # routing class, or a panel/commission/ruling loop class),
+    # (a2) ANY routed dispatch to the seat (table v0.10, the flagship
+    # pool extension: routed work is real work, and real work's
+    # briefs are masked — unrouted named/measurement work keeps the
+    # (a)/(b) shape), and (b) any dispatch whose manifest marks the
+    # material sensitive. Compartmented material never reaches an
+    # external lane at all (TEST-0, above). A brief that cannot be
+    # masked without gutting it is the briefing desk's call — the
+    # seat sits the round out; the gate's part is that unattested
+    # never fires.
+    if (provider == "openrouter" and model.startswith("openai/")
+            and not masking_attested):
+        _judgment_ctx = (
+            routing_class in routing_mod.JUDGMENT_CLASSES
+            or loop_class in ("panel", "commission", "ruling")
+            or routing_class is not None)
+        _sensitive = (
+            isinstance(input_manifest, dict)
+            and (input_manifest.get("data") or {}).get(
+                "sensitivity") == "sensitive")
+        if _judgment_ctx or _sensitive:
+            snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+            stall["cause"] = "masking"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status="blocked-masking:openai-seat", snapshot=snap,
+                checks={"masking": (
+                    "the OpenAI seat requires a masked brief, attested "
+                    "by the briefing desk (masking_attested=True); "
+                    "unattested judgment/sensitive dispatch refuses "
+                    "(his condition 2026-11-19)")},
+                **base,
+            ))
+
     # Promotion path guard (cluster enablement, ratified 2026-11-13):
     # a run claiming a swarm pattern must name a REGISTERED pattern whose
     # eval-gate evidence beat its class baseline, and the class must be a
@@ -491,6 +535,8 @@ def run(
             _admitted = {m for _, m in _spec.chain}
             if _spec.flagship:
                 _admitted.add(_spec.flagship[1])
+            for _vp, _vm in _spec.flagship_voices:
+                _admitted.add(_vm)
             if fire_model not in _admitted \
                     and fire_provider not in routing_mod.LOCAL_PROVIDERS:
                 snap = envelopes_mod.preflight(ledger_path, envelope, lane)
@@ -672,7 +718,7 @@ def run(
                         return model_id, None, att, RuntimeError("no slot")
                     t0 = _monotonic_fn()
                     try:
-                        comp = lanes.dispatch(prompt, prov, model_id, transport=transport)
+                        comp = lanes.dispatch(prompt, prov, model_id, transport=transport, max_tokens=max_tokens)
                         att["latency"] = _monotonic_fn() - t0
                         att["ts_outcome"] = _iso(_time_fn())
                         att["tokens_in"] = comp.tokens_in
@@ -812,7 +858,8 @@ def run(
                 started = _monotonic_fn()
                 try:
                     completion = lanes.dispatch(
-                        prompt, fire_provider, fire_model, transport=transport
+                        prompt, fire_provider, fire_model, transport=transport,
+                        max_tokens=max_tokens
                     )
                     att["latency"] = _monotonic_fn() - started
                     att["ts_outcome"] = _iso(_time_fn())
