@@ -33,7 +33,7 @@ class ResolveTest(unittest.TestCase):
         d = routing.resolve("qr-panel-verdict", "google", "gemini-3.6-flash")
         self.assertTrue(d.allowed)
         self.assertEqual(d.stamp["position"], "chain-0")
-        self.assertEqual(d.stamp["table_version"], "v0.10")
+        self.assertEqual(d.stamp["table_version"], "v0.11")
         self.assertEqual(d.stamp["table_hash"], routing.TABLE_HASH)
 
     def test_spread_seats_admitted_v01(self):
@@ -68,12 +68,14 @@ class ResolveTest(unittest.TestCase):
 
     def test_draft_check_designated_seat_v02(self):
         # Table v0.2 seated the checker on opus (AR-20261117-06);
-        # table v0.7 (his ruling 2026-11-18, Shape B) re-binds chain
+        # table v0.7 (his ruling 2026-11-18, Shape B) re-bound chain
         # AND flagship to grok-4.20-0309-reasoning on the frontier
-        # proof. The designated-seat discipline is unchanged: the
-        # seat admits at chain-0, every other frontier seat — opus
-        # included, now — is a class mismatch, and the class stays
-        # OUT of JUDGMENT_CLASSES.
+        # proof. Table v0.11 (his ruling 2026-11-21, Mining/Harness
+        # five) moves the FLAGSHIP/escalation seat back to opus; the
+        # checker chain seat stays grok-4.20-0309-reasoning. The
+        # designated-seat discipline is unchanged: the checker admits
+        # at chain-0, opus admits at flagship, every other seat is a
+        # class mismatch, and the class stays OUT of JUDGMENT_CLASSES.
         d = routing.resolve("qr-draft-check", "xai",
                             "grok-4.20-0309-reasoning")
         self.assertTrue(d.allowed)
@@ -82,8 +84,8 @@ class ResolveTest(unittest.TestCase):
                          ("xai", "grok-4.20-0309-reasoning"))
         d = routing.resolve("qr-draft-check", "anthropic",
                             "claude-opus-5-5")
-        self.assertFalse(d.allowed)
-        self.assertEqual(d.cause, "class-mismatch")
+        self.assertTrue(d.allowed)
+        self.assertEqual(d.stamp["position"], "flagship")
         d = routing.resolve("qr-draft-check", "google",
                             "gemini-3.6-flash")
         self.assertFalse(d.allowed)
@@ -167,7 +169,7 @@ class ResolveTest(unittest.TestCase):
         s = routing.job_stamp("qr-research")
         self.assertEqual(s["routing_class"], "qr-research")
         self.assertEqual(s["selected"], "google/gemini-3.6-flash")
-        self.assertEqual(s["table_version"], "v0.10")
+        self.assertEqual(s["table_version"], "v0.11")
 
     def test_job_stamp_geneva_direct(self):
         s = routing.job_stamp("qr-career-ops")
@@ -261,7 +263,7 @@ class RunIntegrationTest(unittest.TestCase):
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-live-wire")
         self.assertEqual(rec["routing"]["position"], "chain-0")
-        self.assertEqual(rec["routing"]["table_version"], "v0.10")
+        self.assertEqual(rec["routing"]["table_version"], "v0.11")
 
     def test_draft_check_containment_refuses_commodity_walk(self):
         # v0.4.35 containment: a junior-loop draft check's throttle
@@ -279,7 +281,7 @@ class RunIntegrationTest(unittest.TestCase):
         self.assertEqual(row["status"], "blocked-router:class-mismatch")
         rec = self._final_dispatch_record()
         self.assertEqual(rec["routing"]["class"], "qr-draft-check")
-        self.assertEqual(rec["routing"]["table_version"], "v0.10")
+        self.assertEqual(rec["routing"]["table_version"], "v0.11")
 
     def test_draft_check_loop_serves_designated_seat(self):
         # The fail-closed draft-check loop class fires the checker
@@ -392,7 +394,7 @@ class FiveLaneTest(unittest.TestCase):
         self.assertEqual(
             routing.resolve_nature("qr-research", "reasoning"),
             "reasoning")
-        self.assertEqual(routing.TABLE_VERSION, "v0.10")
+        self.assertEqual(routing.TABLE_VERSION, "v0.11")
 
     def test_bindings_shape(self):
         self.assertEqual(routing.bindings_for("deterministic"), ())
@@ -509,3 +511,17 @@ class PrimingWrapTest(unittest.TestCase):
         row = self._run(seat_mode="named",
                         transport=lambda m, p: xai_raw())
         self.assertEqual(row["status"], "approved")
+
+
+class Gemini31ProRegistrationTest(unittest.TestCase):
+    # His ruling 2026-11-21 (Mining/Harness five): register + price
+    # the serving id gemini-3.1-pro on the google lane at the mapped
+    # figure carried by the -preview row.
+    def test_registered_and_priced(self):
+        from gated_dispatch import pricing, throttle
+        rule = throttle.MODELS.get("gemini-3.1-pro")
+        self.assertIsNotNone(rule)
+        self.assertEqual(rule.provider, "google")
+        self.assertIn(("google", "gemini-3.1-pro"), pricing.PRICES)
+        self.assertEqual(pricing.PRICES[("google", "gemini-3.1-pro")][:2],
+                         (2.00, 12.00))

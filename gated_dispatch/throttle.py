@@ -70,6 +70,12 @@ MODELS: dict[str, ModelRule] = {
     "gemini-3.1-pro-preview": ModelRule("google", concurrency=1, min_interval_s=4.0,
                                         backoff_base_s=5.0, max_retries=2,
                                         error_budget=3, cooldown_s=1800.0),
+    # Added 2026-11-21 (his ruling 01:02 CT via CoS, Mining/Harness five):
+    # the serving id registered alongside the -preview id the frontier
+    # proof ran; same lane shape as the preview rule.
+    "gemini-3.1-pro": ModelRule("google", concurrency=1, min_interval_s=4.0,
+                                backoff_base_s=5.0, max_retries=2,
+                                error_budget=3, cooldown_s=1800.0),
     "gemini-3.5-flash-lite": ModelRule("google", concurrency=1, min_interval_s=4.0,
                                        backoff_base_s=5.0, max_retries=3,
                                        error_budget=3, cooldown_s=1800.0),

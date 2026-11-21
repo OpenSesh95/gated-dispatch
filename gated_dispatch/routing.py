@@ -103,8 +103,8 @@ from dataclasses import dataclass, field
 
 from . import throttle as throttle_mod
 
-TABLE_VERSION = "v0.10"
-TABLE_HASH = "3ae15b4707e88c24140bbf6a303304fd7c4c4d0ba16c3dc86ce5d4c038f1ea89"
+TABLE_VERSION = "v0.11"
+TABLE_HASH = "591e1345d8868b33f8967b9570c23856b11dff34e0e98e3f25fa6d58a9883534"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -395,7 +395,7 @@ CLASSES = {
     "qr-draft-check": ClassSpec(
         "qr-draft-check", "xAI Grok reasoning seat (designated checker)",
         chain=(("xai", "grok-4.20-0309-reasoning"),),
-        flagship=("xai", "grok-4.20-0309-reasoning")),
+        flagship=("anthropic", "claude-opus-5-5")),
     "qr-commission-ruling": ClassSpec(
         "qr-commission-ruling", "Fork (Geneva + unprimed Opus)",
         chain=(),
