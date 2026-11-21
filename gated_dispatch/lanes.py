@@ -228,10 +228,16 @@ PARSERS = {
 # finish_reason MAX_TOKENS. The flat cap stands for standard.
 CAP_BY_CLASS = {"standard": 1024, "long-form": 4096, "reasoning": 4096}
 REASONING_MODELS = {"qwen3:14b", "deepseek-r1:14b",
-                    "grok-4.20-0309-reasoning"}
+                    "grok-4.20-0309-reasoning",
+                    # Reasoning-first frontier seats (v0.4.46): at the
+                    # standard 1024 cap their reasoning spend starved
+                    # the content to empty — the council bench's four
+                    # GPT no-shows (2026-11-20) are the evidence.
+                    "openai/gpt-5.5", "openai/o3"}
 LONG_FORM_MODELS = {"claude-opus-5-5", "claude-fable-5-2",
                     "claude-sonnet-5-5", "gemini-3.1-pro-preview",
-                    "gemini-4-argon", "gemini-4-carbon"}
+                    "gemini-4-argon", "gemini-4-carbon",
+                    "openai/gpt-5.3-codex"}
 
 
 def cap_class_of(model: str) -> str:
@@ -286,12 +292,14 @@ def request_for(provider: str, model: str, prompt: str, max_tokens=None):
     raise KeyError(f"unknown provider {provider!r}")
 
 
-def helper_transport(provider: str):
-    """Build a live transport that calls the provider via its helper."""
+def helper_transport(provider: str, max_tokens=None):
+    """Build a live transport that calls the provider via its helper.
+    max_tokens (v0.4.46) is the caller's explicit output budget; None
+    keeps the model's cap-class default from CAP_BY_CLASS."""
     helper = os.path.expanduser(CONNECTOR_HELPERS[provider])
 
     def _transport(model: str, prompt: str) -> dict:
-        path, body = request_for(provider, model, prompt)
+        path, body = request_for(provider, model, prompt, max_tokens)
         proc = subprocess.run(
             ["python3", helper, path, json.dumps(body)],
             capture_output=True,
@@ -329,10 +337,13 @@ def warm(provider: str, model: str, transport=None) -> bool:
         return False
 
 
-def dispatch(prompt: str, provider: str, model: str, transport=None) -> Completion:
-    """Run one dispatch on a lane and normalize the response."""
+def dispatch(prompt: str, provider: str, model: str, transport=None,
+             max_tokens=None) -> Completion:
+    """Run one dispatch on a lane and normalize the response.
+    max_tokens threads to the helper transport only — a caller-supplied
+    stub transport keeps the (model, prompt) test seam unchanged."""
     if transport is None:
-        transport = helper_transport(provider)
+        transport = helper_transport(provider, max_tokens)
     raw = transport(model, prompt)
     # A provider failure is a LANE failure, not a parse error:
     # normalize every failure shape to ConnectionError so the
