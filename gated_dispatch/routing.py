@@ -103,8 +103,8 @@ from dataclasses import dataclass, field
 
 from . import throttle as throttle_mod
 
-TABLE_VERSION = "v0.7"
-TABLE_HASH = "ae2b665e7872ab71983df67e9efc55ddbe0cda16ad2f8a0b5c08859c49bc8484"
+TABLE_VERSION = "v0.10"
+TABLE_HASH = "3ae15b4707e88c24140bbf6a303304fd7c4c4d0ba16c3dc86ce5d4c038f1ea89"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -254,6 +254,14 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
                 "vision tagging (alternate)", "dispatchable",
                 "PROVEN — capability map: vision test exact (1,089 image tokens per small PNG, verified)",
                 "gate REPINS 3.5->3.6 at dispatch (canary drift 0093): the served seat is 3.6 until the repin is revisited on canary evidence"),
+        Binding("openrouter", "openai/gpt-5.4-nano",
+                "bulk text / classification", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0003): JSON form exact at the helper cap; accuracy mixed on borderline items (3/5, one clear miss)",
+                "bind for form-critical bulk legs on degradable classes, not for judgment. MASKING: named/attested dispatch only. $0.20/$1.25 LIST"),
+        Binding("openrouter", "openai/gpt-5.4-mini",
+                "bulk text / summary", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0004): exact output form, summary + status correct",
+                "MASKING: named/attested dispatch only. $0.75/$4.50 LIST"),
     ),
     "reasoning": (
         Binding("openrouter", "deepseek/deepseek-v4.1-flash-1017",
@@ -271,11 +279,31 @@ MODEL_BINDINGS: dict[str, tuple[Binding, ...]] = {
                 "workhorse drafting", "dispatchable",
                 "PROVEN — capability map: text exact",
                 "THINKING CAVEAT (annex, verified): 82-307 thought tokens on trivial prompts — set budgets explicitly or the lane bills reasoning on every call. Gate REPINS 3.5->3.6 at dispatch (drift 0093)"),
+        Binding("openrouter", "openai/o3",
+                "frontier reasoning", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0002): the existential-import catch stated correctly; also on his lane smoke the same night",
+                "MASKING: named/attested dispatch only (his data-sharing condition); $2.00/$8.00 LIST"),
     ),
     "probabilistic": (
         Binding("anthropic", "claude-opus-5-5", "text/judgment",
                 "dispatchable",
                 "Unchanged — the standing judgment seat (the annex: frontier judgment seats bind under the existing table, unchanged)"),
+        Binding("openrouter", "openai/gpt-5.5",
+                "text/judgment (flagship voice)", "dispatchable",
+                "PROVEN — BYOK smoke + bake-off 2026-11-19: 27 dispatches through the gate, $0 ticketed (BYOK carried them)",
+                "MASKING CONDITION (his order 2026-11-19, fail-closed): briefs are masked before this seat is dispatched; Leela-private material never goes; an unattested judgment dispatch refuses at the gate (blocked-masking:openai-seat); a brief that cannot be masked without gutting it means the seat sits the panel out. BATCH BAR: the seat rides OpenRouter (30-day batch retention) — its legs never batch under the provenance bar"),
+        Binding("openrouter", "openai/gpt-5.3-codex",
+                "code generation (codex line)", "dispatchable",
+                "PROVEN — gate smoke 2026-11-19 (GD-20261120-0001): clean typed code + docstring, form exact",
+                "seats in qr-coding-burst's chain at v0.9, ahead of claude-sonnet-5-5. Burst briefs are desk-prepared (masked per the standing discipline); sensitive-marked bursts refuse unattested"),
+        Binding("openrouter", "openai/gpt-5-image",
+                "image generation", "designated",
+                "PROVEN — his lane smoke 2026-11-19 (image PASS, BYOK)",
+                "image seam — not served through the text seam"),
+        Binding("openrouter", "openai/gpt-audio",
+                "audio-in (voice input)", "designated",
+                "PROVEN — his lane smoke 2026-11-19 (voice-in PASS, BYOK)",
+                "audio seam — not served through the text seam; voice-out is not in the lane's catalog"),
         Binding("xai", "grok-imagine-image",
                 "image generation (primary)", "designated",
                 "PROVEN — capability map: image returned, $0.0200/image TICKS exact",
@@ -310,6 +338,11 @@ class ClassSpec:
     lane: str
     chain: tuple = ()          # ((provider, model), ...) cheapest first
     flagship: tuple | None = None
+    # Additional admitted flagship VOICES (v0.8): a convener may name
+    # one explicitly and it dispatches as a voice alongside the
+    # standing seats. The default flagship selection never changes —
+    # a voice fires only when named.
+    flagship_voices: tuple = ()
     geneva_direct: bool = False
     interim: bool = False
 
@@ -324,12 +357,14 @@ CLASSES = {
     "qr-live-wire": ClassSpec(
         "qr-live-wire", "Grok wire",
         chain=(("xai", "grok-4.20-0309-non-reasoning"),),
-        flagship=("xai", "grok-4.20-multi-agent-0309")),
+        flagship=("xai", "grok-4.20-multi-agent-0309"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-research": ClassSpec(
         "qr-research", "Gemini library + OpenRouter seat + Research Team",
         chain=(("google", "gemini-3.6-flash"),
                ("openrouter", "nemotron-3-ultra")),
-        flagship=("google", "gemini-4-argon")),
+        flagship=("google", "gemini-4-argon"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-spiritual-study": ClassSpec(
         "qr-spiritual-study", "Library lane, gold source first",
         chain=(("google", "gemini-3.6-flash"),),
@@ -346,13 +381,16 @@ CLASSES = {
                ("xai", "grok-4.20-0309-non-reasoning"),
                ("anthropic", "claude-haiku-5-5"),
                ("anthropic", "claude-sonnet-5-5")),
-        flagship=("anthropic", "claude-opus-5-5")),
+        flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-coding-burst": ClassSpec(
         "qr-coding-burst", "Open-weight first - INTERIM (Courier gap)",
         chain=(("openrouter", "north-mini-code"),
                ("google", "gemini-3.6-flash"),
+               ("openrouter", "openai/gpt-5.3-codex"),
                ("anthropic", "claude-sonnet-5-5")),
         flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),),
         interim=True),
     "qr-draft-check": ClassSpec(
         "qr-draft-check", "xAI Grok reasoning seat (designated checker)",
@@ -361,14 +399,16 @@ CLASSES = {
     "qr-commission-ruling": ClassSpec(
         "qr-commission-ruling", "Fork (Geneva + unprimed Opus)",
         chain=(),
-        flagship=("anthropic", "claude-opus-5-5")),
+        flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-panel-verdict": ClassSpec(
         "qr-panel-verdict", "Panel via STD-0 gated dispatch",
         chain=(("google", "gemini-3.6-flash"),
                ("openrouter", "nemotron-3-ultra"),
                ("xai", "grok-4.20-0309-non-reasoning"),
                ("anthropic", "claude-haiku-5-5")),
-        flagship=("anthropic", "claude-opus-5-5")),
+        flagship=("anthropic", "claude-opus-5-5"),
+        flagship_voices=(("openrouter", "openai/gpt-5.5"),)),
     "qr-combination": ClassSpec(
         "qr-combination", "COMBINATION RULE (dominant class lane)"),
 }
@@ -564,9 +604,14 @@ def resolve(class_id: str, provider: str, model: str,
     if spec.flagship is not None and pair == spec.flagship:
         stamp["position"] = "flagship"
         return Decision(True, stamp)
+    if pair in spec.flagship_voices:
+        stamp["position"] = "flagship-voice"
+        return Decision(True, stamp)
     admitted = [f"{p}/{m}" for p, m in spec.chain]
     if spec.flagship is not None:
         admitted.append(f"{spec.flagship[0]}/{spec.flagship[1]} (flagship)")
+    for p, m in spec.flagship_voices:
+        admitted.append(f"{p}/{m} (flagship voice)")
     return Decision(
         False, stamp, "class-mismatch",
         f"class {spec.class_id} admits [{'; '.join(admitted)}]; "
