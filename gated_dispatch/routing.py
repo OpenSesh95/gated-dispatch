@@ -103,8 +103,8 @@ from dataclasses import dataclass, field
 
 from . import throttle as throttle_mod
 
-TABLE_VERSION = "v0.10"
-TABLE_HASH = "3ae15b4707e88c24140bbf6a303304fd7c4c4d0ba16c3dc86ce5d4c038f1ea89"
+TABLE_VERSION = "v0.12"
+TABLE_HASH = "bb639760b3d8500200ed41f242b2e453b0bfde042a0a493e0facdb9f778e972e"
 
 LOCAL_PROVIDERS = frozenset({"local", "gcp"})
 BYPASS_CLASS = "ad-hoc"
@@ -343,6 +343,11 @@ class ClassSpec:
     # standing seats. The default flagship selection never changes —
     # a voice fires only when named.
     flagship_voices: tuple = ()
+    # Designated CHECKER sub-binding (v0.12): one seat admitted for
+    # the class's QA occupation only, fired under its own fail-closed
+    # loop class in cli.run (the qr-draft-check pattern, as a
+    # sub-binding instead of a row of its own).
+    checker: tuple | None = None
     geneva_direct: bool = False
     interim: bool = False
 
@@ -374,7 +379,13 @@ CLASSES = {
         chain=(("google", "gemini-3.6-flash"),
                ("google", "gemini-4-argon"),
                ("anthropic", "claude-sonnet-5-5")),
-        flagship=("anthropic", "claude-opus-5-5")),
+        flagship=("anthropic", "claude-opus-5-5"),
+        # Canon-QA designated checker (his ruling 2026-11-21 01:12 CT):
+        # QA over canon drafts sits with the frontier-proof's canon-QA
+        # seat; the class's exclusion posture (no OpenAI voice, Leela-
+        # private) is inherited undiluted. Fires only under
+        # loop_class="canon-qa" (cli.run enforces both directions).
+        checker=("xai", "grok-4.20-0309-reasoning")),
     "qr-content-voice": ClassSpec(
         "qr-content-voice", "Multi-lane cluster via studios + voice profile",
         chain=(("google", "gemini-3.6-flash"),
@@ -395,7 +406,7 @@ CLASSES = {
     "qr-draft-check": ClassSpec(
         "qr-draft-check", "xAI Grok reasoning seat (designated checker)",
         chain=(("xai", "grok-4.20-0309-reasoning"),),
-        flagship=("xai", "grok-4.20-0309-reasoning")),
+        flagship=("anthropic", "claude-opus-5-5")),
     "qr-commission-ruling": ClassSpec(
         "qr-commission-ruling", "Fork (Geneva + unprimed Opus)",
         chain=(),
@@ -607,11 +618,16 @@ def resolve(class_id: str, provider: str, model: str,
     if pair in spec.flagship_voices:
         stamp["position"] = "flagship-voice"
         return Decision(True, stamp)
+    if spec.checker is not None and pair == spec.checker:
+        stamp["position"] = "designated-checker"
+        return Decision(True, stamp)
     admitted = [f"{p}/{m}" for p, m in spec.chain]
     if spec.flagship is not None:
         admitted.append(f"{spec.flagship[0]}/{spec.flagship[1]} (flagship)")
     for p, m in spec.flagship_voices:
         admitted.append(f"{p}/{m} (flagship voice)")
+    if spec.checker is not None:
+        admitted.append(f"{spec.checker[0]}/{spec.checker[1]} (designated checker)")
     return Decision(
         False, stamp, "class-mismatch",
         f"class {spec.class_id} admits [{'; '.join(admitted)}]; "

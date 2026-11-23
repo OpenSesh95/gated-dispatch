@@ -70,6 +70,12 @@ MODELS: dict[str, ModelRule] = {
     "gemini-3.1-pro-preview": ModelRule("google", concurrency=1, min_interval_s=4.0,
                                         backoff_base_s=5.0, max_retries=2,
                                         error_budget=3, cooldown_s=1800.0),
+    # Added 2026-11-21 (his ruling 01:02 CT via CoS, Mining/Harness five):
+    # the serving id registered alongside the -preview id the frontier
+    # proof ran; same lane shape as the preview rule.
+    "gemini-3.1-pro": ModelRule("google", concurrency=1, min_interval_s=4.0,
+                                backoff_base_s=5.0, max_retries=2,
+                                error_budget=3, cooldown_s=1800.0),
     "gemini-3.5-flash-lite": ModelRule("google", concurrency=1, min_interval_s=4.0,
                                        backoff_base_s=5.0, max_retries=3,
                                        error_budget=3, cooldown_s=1800.0),
@@ -675,6 +681,9 @@ CLASS_RANK = {
     # v0.4.35: the draft-check loop gates outward sends — a desk
     # waits on the verdict — so it ranks with the panel class.
     "draft-check": 2,
+    # v0.4.49: the canon-QA loop gates canon publication the way
+    # draft-check gates outward sends — same rank.
+    "canon-qa": 2,
     # v0.4.42: the router brain classifies at intake, ahead of the
     # work it routes — mid-pack, ahead of bulk classes, behind the
     # judgment classes whose work it must never delay.
@@ -709,6 +718,10 @@ LOOP_CLASSES: dict[str, dict] = {
     # outward-draft compliance check fires its checker seat or
     # stops — substitution would be a different gate.
     "draft-check": {"behavior": "fail-closed", "chain": []},
+    # Designated-seat service (v0.4.49; his ruling 2026-11-21): the
+    # canon-QA check fires the class's designated checker seat or
+    # stops — substitution would be a different checker.
+    "canon-qa": {"behavior": "fail-closed", "chain": []},
     # Designated-seat service (v0.4.42): the router brain is its one
     # proven seat — substitution would seat a different classifier
     # than the probe evidence covers. Its failure handling lives in
