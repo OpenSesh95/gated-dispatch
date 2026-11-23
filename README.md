@@ -64,3 +64,7 @@ Every dispatch now runs under the STD-0 metering standard (`docs/std-0.md`): one
 ## Status
 
 v0.2.0 — STD-0 live on three lanes; 12 offline tests green. Architecture decision records and diagrams live under `docs/`; operating receipts (aggregate cost per ticket, failure log) are published from real runs, not staged for the README.
+
+## Runtime data
+
+The registries under `docs/` (`quarantine-registry.jsonl`, `prompt-registry.jsonl` — hashes only, never prompt text — `judge-calibrations.jsonl`, `success-rates.json`, `promotion-registry.jsonl`) are the gate's runtime data, read by the dispatcher on every run. This repo is the gate's working copy, so its operational registries live here by design; they are data the code consumes, not a separate records archive. (Footprint audit, 2026-11-23.)
