@@ -44,19 +44,27 @@ DETERMINISTIC_CLASSES = {"qr-life-ops", "qr-career-ops", "ad-hoc"}
 VALID_SPLITS = {"claude", "spark", "either"}
 
 PROMPT_TEXT = """You classify work for a routing table. Classes (id: definition):
-qr-quick-lookup: a factual lookup with a definite answer
-qr-life-ops: household/personal logistics - deterministic plain compute
+qr-quick-lookup: a factual lookup with a definite answer - INCLUDING single-fact status checks (reachability, counts, current state, one system's output, a status summary of current state) even when a tool must be run to get the answer; if the answer is one definite fact or a flat status list, it is a lookup, not research
+qr-life-ops: household/personal logistics ONLY - deterministic plain compute; work-operations analysis is never life-ops
 qr-career-ops: job-search operations - deterministic plain compute
-qr-research: open research requiring synthesis across sources
+qr-research: open research requiring synthesis across sources; measurement, scanning, or verification with a definite method is research when it synthesizes or analyzes - a single-system status check is a lookup instead
+qr-live-wire: summarizing or monitoring a live feed (headlines, wires, tickers, sentiment) as it moves
 qr-spiritual-study: study of spiritual texts and practice under a gold-source discipline
-qr-canon-drafting: drafting canon or standards text
+qr-canon-drafting: drafting canon, standards, or design-doctrine text that will govern other work; PLANNING a sequence of operations is not drafting - class a plan by the domain it operates on
 qr-content-voice: drafting outward content in the owner's voice
-qr-coding-burst: a burst of code work
+qr-coding-burst: AUTHORING or MODIFYING code in a burst; running an existing tool, scanner, check, or verification - even a technical one - is NOT coding-burst; class tool-running by its purpose (measurement/verification is qr-research, a status check is qr-quick-lookup)
 qr-draft-check: checking an outward draft against a rule sheet - verdicts only, never drafting
 qr-commission-ruling: a commissioned ruling or design decision
 qr-panel-verdict: a multi-seat panel verdict
 qr-combination: a composite task spanning classes; name the dominant class
 ad-hoc: an unclassifiable one-off human act
+Boundary cases (class: the correct call):
+- "Scan a repository's history with a security scanner and summarize the hits" -> qr-research (measurement; no code is authored)
+- "Verify a control refuses X and passes Y, with fresh evidence" -> qr-research (verification, not code work)
+- "Plan the step sequence for an operations rollout" -> the ops domain it serves, e.g. qr-career-ops (a plan is not a drafted document)
+- "Check whether a web page is reachable and report its status" -> qr-quick-lookup (one definite fact)
+- "Summarize today's CI failures and name the failing items" -> qr-quick-lookup (current-state status, not open research)
+- "Compute rates from a results ledger" -> qr-research (analysis over data; never qr-life-ops)
 Natures: deterministic (plain compute, no model judgment) - algorithmic (a fixed procedure with model steps) - statistical (pattern inference over data) - reasoning (multi-step inference to a conclusion) - probabilistic (judgment under uncertainty).
 Seats: claude (the API seat - fires immediately) - spark (a browser-seat agent - queued, minutes-to-hours, strong at web research and long-horizon web tasks) - either.
 Deterministic plain compute is classed qr-life-ops or qr-career-ops and is never split to a model seat.
