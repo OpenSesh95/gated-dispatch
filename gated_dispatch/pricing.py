@@ -47,6 +47,7 @@ PRICES = {
     ("google", "gemini-3.6-flash"): (0.75, 3.75, "Google pricing page, checked 2026-11-12 (intro rate through 2026-12-31; gemini-3.5-flash SERVES as this id — drift observed 2026-11-12)"),
     ("google", "gemini-3.7-flash"): (0.75, 3.75, "Google pricing page, checked 2026-11-12 (intro rate through 2026-12-31). QUARANTINE per C-023 R-2 (drift alias): priced for the record, NOT allowlisted — the gate stops it as banned-model. NO SUCCESSOR RATE EXISTS: the id is ABSENT from Google's pricing page entirely (full-page read 2026-11-14) — no step is encoded; the row lapses with the intro on 2026-12-31 and the id stays quarantined (retirement ruling rides the audit close-out)."),
     ("google", "gemini-3.1-pro-preview"): (2.00, 12.00, "Google pricing page, checked 2026-11-12 (P-022 unblock; <=200k prompts — $4/$18 above, not modelled)"),
+    ("google", "gemini-3.1-pro"): (2.00, 12.00, "Mapped from the gemini-3.1-pro-preview row on his ruling 2026-11-21 (Mining/Harness five: register + price the serving id at the mapped figure; <=200k prompts — $4/$18 above, not modelled)"),
     ("google", "gemini-3.5-flash-lite"): (0.30, 2.50, "Google pricing page, checked 2026-11-12"),
     ("google", "gemini-3.1-flash-lite"): (0.25, 1.50, "Google pricing page, checked 2026-11-12"),
     ("google", "gemini-2.5-flash-lite"): (0.10, 0.40, "Google pricing page, checked 2026-11-12 (priced only — 2.5 family stays off the dispatch allowlist)"),

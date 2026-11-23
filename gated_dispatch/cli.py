@@ -535,6 +535,8 @@ def run(
             _admitted = {m for _, m in _spec.chain}
             if _spec.flagship:
                 _admitted.add(_spec.flagship[1])
+            if _spec.checker:
+                _admitted.add(_spec.checker[1])
             for _vp, _vm in _spec.flagship_voices:
                 _admitted.add(_vm)
             if fire_model not in _admitted \
@@ -552,6 +554,38 @@ def run(
                         f"set; routed runs fire only on class seats")},
                     **base,
                 ))
+    # Canon-QA designated checker (table v0.12; his ruling 2026-11-21
+    # 01:12 CT): a class's checker seat (routing stamp position
+    # "designated-checker") fires ONLY under loop_class="canon-qa",
+    # and the canon-qa loop serves ONLY that seat under its class.
+    # Both directions refuse here, before the transport fires — the
+    # qr-draft-check discipline, carried as a sub-binding.
+    if routing_class is not None:
+        _pos = decision.stamp.get("position")
+        if _pos == "designated-checker" and loop_class != "canon-qa":
+            snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+            stall["cause"] = "router"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status="blocked-router:checker-loop-required",
+                snapshot=snap,
+                checks={"routing": (
+                    "the designated-checker seat fires only under "
+                    "loop_class='canon-qa' (fail-closed)")},
+                **base,
+            ))
+        if loop_class == "canon-qa" and _pos != "designated-checker":
+            snap = envelopes_mod.preflight(ledger_path, envelope, lane)
+            stall["cause"] = "router"
+            return finish(ledger_mod.append_row(
+                ledger_path, tokens_in=0, tokens_out=0,
+                status="blocked-router:canon-qa-seat",
+                snapshot=snap,
+                checks={"routing": (
+                    "loop_class='canon-qa' serves only the class's "
+                    "designated-checker seat")},
+                **base,
+            ))
     # C-042: the live-cost stamp for the fired model rides the final
     # + stopped records from here on (run records; feed adoption is
     # Treasury's §7 call). build_stamp never raises — its failure
