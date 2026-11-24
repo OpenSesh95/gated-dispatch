@@ -23,6 +23,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 
+from . import buswire as buswire_mod
 from . import contracts as contracts_mod
 from . import dispatch_log as dispatch_log_mod
 from . import envelopes as envelopes_mod
@@ -319,12 +320,18 @@ def run(
                 "run it as plain compute, not a dispatch")},
             **base,
         ))
+    _bus_ctx = None
     if routing_class is not None:
         decision = routing_mod.resolve(
             routing_class, provider, model,
             dominant=routing_dominant, local_only=test0)
         decision.stamp["nature"] = resolved_nature
         final_extra["routing"] = decision.stamp
+        _bus_ctx = None
+        if decision.allowed:
+            _bus_ctx = buswire_mod.decide(
+                f"run-{loop_id}".lower(), routing_class,
+                provider, model, test0=test0)
         if not decision.allowed:
             snap = envelopes_mod.preflight(ledger_path, envelope, lane)
             stall["cause"] = "router"
@@ -932,6 +939,11 @@ def run(
     if completion is None:
         exc = last_exc or RuntimeError("dispatch failed")
         stall["cause"] = "provider-error"
+        buswire_mod.emit_outcome(
+            _bus_ctx, fire_provider, fire_model,
+            sum(att["tokens_in"] for att in attempts),
+            sum(att["tokens_out"] for att in attempts),
+            outcome="failed")
         return finish(ledger_mod.append_row(
             ledger_path, tokens_in=0, tokens_out=0,
             status=f"error:{type(exc).__name__}", snapshot=snap,
@@ -1022,6 +1034,11 @@ def run(
     }
     if not approved:
         stall["cause"] = "gate"
+    buswire_mod.emit_outcome(
+        _bus_ctx, fire_provider,
+        completion.model_served or fire_model,
+        completion.tokens_in, completion.tokens_out,
+        cost_usd=sum(att["cost_usd"] for att in attempts))
     return finish(ledger_mod.append_row(
         ledger_path,
         tokens_in=completion.tokens_in, tokens_out=completion.tokens_out,
